@@ -630,11 +630,14 @@ function doPost(e) {
             });
         }
 
+        // URL Backend Permanen Google Apps Script (Berlaku di semua browser/perangkat)
+        const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxK90hK35m-DIXSb6qR7Z2k7lwMdICeHOSv8D6UxciNUNNGNQB6uTsfMSCLJHTLVRbK/exec';
+
         let state = {
             students: JSON.parse(localStorage.getItem('ei_students')) || DEFAULT_STUDENTS,
             attendanceLogs: JSON.parse(localStorage.getItem('ei_logs')) || [],
             uzurLogs: JSON.parse(localStorage.getItem('ei_uzur')) || [],
-            gasUrl: localStorage.getItem('ei_gas_url') || '',
+            gasUrl: localStorage.getItem('ei_gas_url') || DEFAULT_GAS_URL,
             isAuthenticated: sessionStorage.getItem('ei_officer_auth') === 'true',
             userRole: sessionStorage.getItem('ei_user_role') || 'petugas',
             officerName: sessionStorage.getItem('ei_officer_name') || 'Petugas Piket',
@@ -720,6 +723,7 @@ function doPost(e) {
                 
                 checkAuthStatus();
                 showToast(`Selamat datang, ${state.officerName}!`, 'success');
+                if (state.gasUrl) syncFromGoogleSheet(true);
             } else {
                 showToast('Username atau Password tidak valid.', 'error');
             }
@@ -816,10 +820,11 @@ function doPost(e) {
             // Deteksi otomatis waktu sholat (Hanya Dhuha atau Dhuhur)
             autoDetectPrayerTime();
 
-            // Load GAS URL jika tersimpan
+            // Load GAS URL permanen & jalankan sinkronisasi otomatis
             if (state.gasUrl) {
                 document.getElementById('gas-url-input').value = state.gasUrl;
                 updateConnectionBadge(true);
+                syncFromGoogleSheet(true);
             }
 
             populateDropdowns();
@@ -1473,17 +1478,126 @@ function doPost(e) {
         // 9. INTEGRASI GOOGLE SHEETS (GAS API)
         // ==========================================
         function saveGasUrl() {
-            const url = document.getElementById('gas-url-input').value.trim();
+            const url = document.getElementById('gas-url-input').value.trim() || DEFAULT_GAS_URL;
             state.gasUrl = url;
             localStorage.setItem('ei_gas_url', url);
+            document.getElementById('gas-url-input').value = url;
             
-            if (url) {
-                updateConnectionBadge(true);
-                showToast('URL Google Apps Script disimpan! Mencoba sinkronisasi...', 'success');
-                syncFromGoogleSheet();
+            updateConnectionBadge(true);
+            showToast('URL Google Apps Script disimpan! Menyinkronkan data...', 'success');
+            syncFromGoogleSheet(false);
+        }
+
+        function updateConnectionBadge(isConnected) {
+            const el = document.getElementById('connection-status');
+            if (isConnected) {
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span> Terhubung ke Google Sheets`;
             } else {
-                updateConnectionBadge(false);
-                showToast('URL dikosongkan. Kembali ke Mode Demo Lokal.', 'info');
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Mode Demo Lokal (Belum Terhubung Sheet)`;
+            }
+        }
+
+        function normalizeSheetDate(val) {
+            if (!val) return '';
+            const str = String(val).trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+            const parsed = new Date(str);
+            if (!isNaN(parsed.getTime())) {
+                const y = parsed.getFullYear();
+                const m = String(parsed.getMonth() + 1).padStart(2, '0');
+                const d = String(parsed.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            return str.slice(0, 10);
+        }
+
+        async function postToGoogleSheet(payload) {
+            if (!state.gasUrl) return;
+            try {
+                await fetch(state.gasUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                console.error('Gagal mengirim ke Google Sheet:', err);
+                showToast('Data tersimpan lokal, namun gagal sinkron ke Google Sheet.', 'error');
+            }
+        }
+
+        async function syncFromGoogleSheet(isSilent = false) {
+            if (!state.gasUrl) {
+                if (!isSilent) showToast('Masukkan URL Google Apps Script terlebih dahulu.', 'info');
+                return;
+            }
+            try {
+                const res = await fetch(state.gasUrl);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    // 1. Sinkronisasi Data Master Siswa
+                    if (data.siswa && data.siswa.length > 1) {
+                        state.students = data.siswa.slice(1)
+                            .filter(row => row[0] && row[1])
+                            .map(row => ({
+                                id: String(row[0]).trim().toUpperCase(),
+                                nama: String(row[1]).trim(),
+                                kelas: String(row[2] || '-').trim(),
+                                gender: String(row[3] || 'Laki-laki').trim()
+                            }));
+                        populateDropdowns();
+                        renderSearchQrCards();
+                    }
+
+                    // 2. Sinkronisasi Data Absensi Sholat
+                    if (data.absensi && data.absensi.length > 1) {
+                        state.attendanceLogs = data.absensi.slice(1)
+                            .filter(row => row[1] && row[3])
+                            .map(row => {
+                                const sid = String(row[1]).trim().toUpperCase();
+                                const matchedStudent = state.students.find(s => s.id === sid);
+                                return {
+                                    id_absen: String(row[0] || ''),
+                                    id_siswa: sid,
+                                    nama_siswa: String(row[2] || (matchedStudent ? matchedStudent.nama : sid)),
+                                    kelas: matchedStudent ? matchedStudent.kelas : '-',
+                                    tanggal: normalizeSheetDate(row[3]),
+                                    waktu_sholat: String(row[4] || 'Dhuhur').trim(),
+                                    status: String(row[5] || 'Hadir').trim(),
+                                    metode: String(row[6] || 'Google Sheet').trim()
+                                };
+                            })
+                            .reverse();
+                    }
+
+                    // 3. Sinkronisasi Data Log Menstruasi / Uzur
+                    if (data.uzur && data.uzur.length > 1) {
+                        state.uzurLogs = data.uzur.slice(1)
+                            .filter(row => row[1] && row[3])
+                            .map(row => {
+                                const sid = String(row[1]).trim().toUpperCase();
+                                const matchedStudent = state.students.find(s => s.id === sid);
+                                return {
+                                    id_log: String(row[0] || ''),
+                                    id_siswa: sid,
+                                    nama_siswa: String(row[2] || (matchedStudent ? matchedStudent.nama : sid)),
+                                    kelas: matchedStudent ? matchedStudent.kelas : '-',
+                                    tanggal_mulai: normalizeSheetDate(row[3]),
+                                    durasi: Number(row[4] || 5),
+                                    tanggal_selesai: normalizeSheetDate(row[5])
+                                };
+                            })
+                            .reverse();
+                    }
+
+                    saveLocalState();
+                    renderAll();
+                    updateConnectionBadge(true);
+                    if (!isSilent) showToast('Berhasil sinkronisasi seluruh data dari Google Sheets!', 'success');
+                }
+            } catch (err) {
+                console.warn('Sync error:', err);
+                if (!isSilent) showToast('Gagal mengambil data dari Google Sheet. Periksa izin deployment Web App.', 'error');
             }
         }
 
