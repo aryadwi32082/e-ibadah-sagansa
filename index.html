@@ -970,12 +970,22 @@ function doPost(e) {
             btnText.textContent = 'Matikan Kamera';
 
             state.html5QrCode = new Html5Qrcode("qr-reader");
+            let lastScannedCode = '';
+            let lastScannedTime = 0;
+
             state.html5QrCode.start(
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 220, height: 220 } },
                 (decodedText) => {
-                    processScan(decodedText.trim().toUpperCase(), 'Scan Kamera QR');
-                    stopScanner();
+                    const cleanCode = decodedText.trim().toUpperCase();
+                    const now = Date.now();
+                    // Cegah pemindaian ganda pada kartu yang sama dalam 2.5 detik
+                    if (cleanCode === lastScannedCode && (now - lastScannedTime) < 2500) {
+                        return;
+                    }
+                    lastScannedCode = cleanCode;
+                    lastScannedTime = now;
+                    processScan(cleanCode, 'Scan Kamera QR');
                 },
                 () => {}
             ).then(() => {
