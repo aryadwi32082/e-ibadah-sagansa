@@ -321,10 +321,8 @@
                     <div class="flex items-center gap-2">
                         <select id="filter-class" onchange="renderLogs()" class="text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 bg-slate-50">
                             <option value="ALL">Semua Kelas</option>
-                            <option value="X-A">Kelas X-A</option>
-                            <option value="XI-B">Kelas XI-B</option>
                         </select>
-                        <button onclick="syncFromGoogleSheet()" class="text-xs bg-teal-50 text-teal-700 hover:bg-teal-100 font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition">
+                        <button onclick="syncFromGoogleSheet(false)" class="text-xs bg-teal-50 text-teal-700 hover:bg-teal-100 font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition">
                             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sync
                         </button>
                     </div>
@@ -845,6 +843,22 @@ function doPost(e) {
 
         function populateDropdowns() {
             filterUzurStudents();
+            updateClassFilterDropdown();
+        }
+
+        function updateClassFilterDropdown() {
+            const filterClassEl = document.getElementById('filter-class');
+            if (!filterClassEl) return;
+            const currentVal = filterClassEl.value || 'ALL';
+            const uniqueClasses = [...new Set(state.students.map(s => s.kelas).filter(Boolean))].sort();
+            
+            filterClassEl.innerHTML = '<option value="ALL">Semua Kelas</option>';
+            uniqueClasses.forEach(cls => {
+                filterClassEl.innerHTML += `<option value="${cls}">Kelas ${cls}</option>`;
+            });
+            if (uniqueClasses.includes(currentVal)) {
+                filterClassEl.value = currentVal;
+            }
         }
 
         function filterUzurStudents() {
@@ -897,7 +911,10 @@ function doPost(e) {
             activeBtn.classList.remove('text-slate-500');
             activeBtn.classList.add(tabName === 'uzur' ? 'text-rose-600' : 'text-teal-700', 'font-semibold', 'bg-slate-100/80');
 
-            if (tabName === 'rekap') renderAll();
+            if (tabName === 'rekap') {
+                renderAll();
+                if (state.gasUrl) syncFromGoogleSheet(true);
+            }
         }
 
         function switchRekapMode(mode) {
@@ -1608,58 +1625,6 @@ function doPost(e) {
             } catch (err) {
                 console.warn('Sync error:', err);
                 if (!isSilent) showToast('Gagal mengambil data dari Google Sheet. Periksa izin deployment Web App.', 'error');
-            }
-        }
-
-        function updateConnectionBadge(isConnected) {
-            const el = document.getElementById('connection-status');
-            if (isConnected) {
-                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span> Terhubung ke Google Sheets`;
-            } else {
-                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Mode Demo Lokal (Belum Terhubung Sheet)`;
-            }
-        }
-
-        async function postToGoogleSheet(payload) {
-            if (!state.gasUrl) return;
-            try {
-                await fetch(state.gasUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            } catch (err) {
-                console.error('Gagal mengirim ke Google Sheet:', err);
-                showToast('Data tersimpan lokal, namun gagal sinkron ke Google Sheet.', 'error');
-            }
-        }
-
-        async function syncFromGoogleSheet() {
-            if (!state.gasUrl) {
-                showToast('Masukkan URL Google Apps Script di tab Google Sheet terlebih dahulu.', 'info');
-                return;
-            }
-            try {
-                const res = await fetch(state.gasUrl);
-                const data = await res.json();
-                if (data.status === 'success') {
-                    if (data.siswa && data.siswa.length > 1) {
-                        state.students = data.siswa.slice(1).map(row => ({
-                            id: String(row[0]),
-                            nama: String(row[1]),
-                            kelas: String(row[2]),
-                            gender: String(row[3])
-                        }));
-                        populateDropdowns();
-                        renderSearchQrCards();
-                    }
-                    saveLocalState();
-                    renderAll();
-                    showToast('Berhasil sinkronisasi data dari Google Sheets!', 'success');
-                }
-            } catch (err) {
-                showToast('Gagal mengambil data dari Google Sheet. Periksa izin deployment Web App.', 'error');
             }
         }
 
