@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Ibadah SAGANSA | Absensi Sholat & Smart Uzur</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- HTML5-QRCode Library untuk Pemindaian Kamera -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        /* Animasi halus */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        #qr-reader video {
+            border-radius: 1rem;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="text-slate-800 pb-24 min-h-screen flex flex-col">
+
+    <!-- ========================================== -->
+    <!-- LAYAR LOGIN KHUSUS PETUGAS & SUPERADMIN    -->
+    <!-- ========================================== -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-8 shadow-2xl border border-slate-100 animate-fade-in space-y-6">
+            <div class="text-center space-y-2">
+                <!-- Logo E-Ibadah SAGANSA -->
+                <div class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-lg border border-slate-200 p-1.5 overflow-hidden">
+                    <img src="https://i.imgur.com/RcV7OCd.png" alt="Logo E-Ibadah SAGANSA" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://placehold.co/96x96/0f766e/ffffff?text=SAGANSA';">
+                </div>
+                <h1 class="text-xl font-bold text-slate-800">E-Ibadah SAGANSA</h1>
+                <p class="text-xs text-slate-500">Silakan masuk menggunakan akun Petugas atau Superadmin untuk mengelola absensi.</p>
+            </div>
+
+            <form onsubmit="handleOfficerLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Username</label>
+                    <div class="relative">
+                        <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="login-username" required placeholder="Masukkan username" class="w-full text-sm border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-600">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Password</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="password" id="login-password" required placeholder="Masukkan password" class="w-full text-sm border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-600">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-teal-800 hover:bg-teal-900 text-white font-semibold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                    <i data-lucide="log-in" class="w-4 h-4"></i> Masuk Aplikasi
+                </button>
+            </form>
+
+            <div class="pt-2 border-t border-slate-100 text-center">
+                <p class="text-[11px] text-slate-400">dikembangkan oleh <span class="font-semibold text-slate-500">ariyaxoxo</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Header -->
+    <header class="bg-teal-800 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-3xl mx-auto px-4 py-3.5 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <!-- Logo Header E-Ibadah SAGANSA -->
+                <div class="w-11 h-11 bg-white p-1 rounded-xl border border-teal-600/60 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                    <img src="https://i.imgur.com/RcV7OCd.png" alt="Logo E-Ibadah SAGANSA" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://placehold.co/44x44/0f766e/ffffff?text=EI';">
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg leading-tight tracking-tight">E-Ibadah SAGANSA</h1>
+                    <p class="text-[11px] text-teal-200 flex items-center gap-1" id="connection-status">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Mode Demo Lokal (Belum Terhubung Sheet)
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Badge Peran Akun & Tombol Logout -->
+            <div class="flex items-center gap-2">
+                <span class="hidden sm:inline-flex items-center gap-1.5 bg-teal-900/80 text-teal-100 text-xs px-3 py-1.5 rounded-xl border border-teal-600/60">
+                    <i data-lucide="shield" class="w-3.5 h-3.5 text-amber-300"></i> <span id="officer-name-badge">Petugas</span>
+                </span>
+                <button onclick="logoutOfficer()" class="bg-rose-600/90 hover:bg-rose-700 text-white text-xs font-medium px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm" title="Keluar / Logout">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Keluar</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notifikasi Toast / Message Box (Pengganti alert()) -->
+    <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md pointer-events-none flex flex-col gap-2"></div>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-3xl w-full mx-auto px-4 pt-5">
+
+        <!-- ========================================== -->
+        <!-- TAB 1: SCAN SHOLAT (QR SCANNER)            -->
+        <!-- ========================================== -->
+        <section id="view-scan" class="animate-fade-in space-y-5">
+            <!-- Info Waktu Sholat Aktif (Hanya Dhuha & Dhuhur) -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Jadwal Sholat Aktif</span>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <select id="prayer-time-select" onchange="renderAll()" class="font-bold text-lg text-teal-800 bg-teal-50 border border-teal-200 rounded-xl px-3 py-1 focus:outline-none">
+                            <option value="Dhuha">Sholat Dhuha</option>
+                            <option value="Dhuhur" selected>Sholat Dhuhur</option>
+                        </select>
+                        <span id="current-date-badge" class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1.5 rounded-xl font-medium"></span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-slate-400 block">Hadir (<span id="selected-prayer-label">Dhuhur</span>)</span>
+                    <span id="today-present-count" class="text-2xl font-bold text-teal-700">0</span>
+                </div>
+            </div>
+
+            <!-- Area Kamera QR Scanner -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 text-center space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-semibold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="qr-code" class="w-5 h-5 text-teal-600"></i> Pindai Kartu QR Siswa
+                    </h2>
+                    <button id="toggle-camera-btn" onclick="toggleScanner()" class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-teal-600 text-white hover:bg-teal-700 transition flex items-center gap-1.5 shadow-sm">
+                        <i data-lucide="camera" class="w-4 h-4"></i> <span id="camera-btn-text">Aktifkan Kamera</span>
+                    </button>
+                </div>
+
+                <!-- Container Kamera -->
+                <div id="scanner-wrapper" class="hidden overflow-hidden rounded-2xl bg-slate-900 relative min-h-[260px] flex flex-col items-center justify-center p-3">
+                    <div id="qr-reader" class="w-full"></div>
+                    <p class="text-[11px] text-slate-300 mt-2">Arahkan QR Code kartu siswa ke dalam kotak pemindai.</p>
+                </div>
+
+                <!-- Input Manual Massal Hingga 50 ID Siswa -->
+                <div class="pt-3 border-t border-slate-100 space-y-2 text-left">
+                    <div class="flex items-center justify-between">
+                        <label for="manual-student-id" class="text-xs font-medium text-slate-600">
+                            Input Cepat ID Siswa (Maksimal 50 ID sekaligus):
+                        </label>
+                        <span id="batch-id-counter" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                            0 / 50 ID
+                        </span>
+                    </div>
+                    <textarea id="manual-student-id" rows="3" oninput="updateBatchIdCounter()" placeholder="Masukkan hingga 50 ID siswa (pisahkan dengan koma, spasi, titik koma, atau baris baru)&#10;Contoh: S001, S002, S003" class="w-full text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 uppercase font-mono leading-relaxed"></textarea>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-[11px] text-slate-400">Otomatis melewati ID duplikat & mengecek masa uzur.</span>
+                        <button onclick="handleManualScan()" class="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-sm">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Proses Absen
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fitur Pencarian Nama Siswa & Langsung Muncul Sampel QR -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-3.5">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold text-sm text-slate-800 flex items-center gap-2">
+                        <i data-lucide="search" class="w-4 h-4 text-teal-600"></i> Cari Nama Siswa & Sampel QR Code
+                    </h3>
+                    <span class="text-[11px] text-slate-400">Klik QR untuk absen cepat</span>
+                </div>
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" id="search-student-scan" oninput="renderSearchQrCards()" placeholder="Ketik nama siswa atau kelas (cth: Aisyah, X-A)..." class="w-full text-sm border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+                <div id="search-qr-results" class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                    <!-- Hasil pencarian langsung memunculkan kartu QR siswa -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: SMART UZUR MENSTRUASI (PETUGAS)     -->
+        <!-- ========================================== -->
+        <section id="view-uzur" class="hidden animate-fade-in space-y-5">
+            <!-- Banner Informasi -->
+            <div class="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200/80 rounded-2xl p-5 shadow-sm">
+                <div class="flex items-start gap-3.5">
+                    <div class="bg-rose-100 p-2.5 rounded-xl text-rose-600 shrink-0 mt-0.5">
+                        <i data-lucide="heart-handshake" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-rose-950 text-base">Input Uzur Syar'i Siswi (Multi-Hari)</h2>
+                        <p class="text-xs text-rose-800/80 mt-1 leading-relaxed">
+                            Catat siswi yang sedang berhalangan (menstruasi). Sistem akan otomatis menandai status <strong>Sholat Dhuha & Dhuhur</strong> sebagai <em>"Uzur Syar'i"</em> selama rentang hari yang dipilih.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Smart Uzur -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Cari & Pilih Nama Siswi</label>
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="uzur-search-input" oninput="filterUzurStudents()" placeholder="Ketik nama siswi, ID, atau kelas..." class="w-full text-sm border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-400">
+                    </div>
+                    <select id="uzur-student-select" class="w-full text-sm border border-slate-200 rounded-xl px-3.5 py-3 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-400">
+                        <!-- Hanya menampilkan siswi perempuan -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Tanggal Mulai</label>
+                    <input type="date" id="uzur-start-date" class="w-full text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-rose-400">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Pilih Perkiraan Durasi (Otomatis Multi-Hari)</label>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <button type="button" onclick="selectDuration(3)" id="dur-btn-3" class="dur-btn border-2 border-slate-200 hover:border-rose-400 rounded-xl py-3 px-2 text-center transition">
+                            <span class="block text-lg font-bold text-slate-800">3 Hari</span>
+                            <span class="text-[11px] text-slate-500">Singkat</span>
+                        </button>
+                        <button type="button" onclick="selectDuration(5)" id="dur-btn-5" class="dur-btn border-2 border-rose-500 bg-rose-50/70 rounded-xl py-3 px-2 text-center transition">
+                            <span class="block text-lg font-bold text-rose-700">5 Hari</span>
+                            <span class="text-[11px] text-rose-600">Umum</span>
+                        </button>
+                        <button type="button" onclick="selectDuration(7)" id="dur-btn-7" class="dur-btn border-2 border-slate-200 hover:border-rose-400 rounded-xl py-3 px-2 text-center transition">
+                            <span class="block text-lg font-bold text-slate-800">7 Hari</span>
+                            <span class="text-[11px] text-slate-500">Maksimal</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Preview Rentang Tanggal -->
+                <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70 flex items-center justify-between text-xs">
+                    <span class="text-slate-500">Berlaku otomatis s/d tanggal:</span>
+                    <span id="uzur-end-preview" class="font-bold text-rose-700 text-sm">-</span>
+                </div>
+
+                <button onclick="submitUzur()" class="w-full bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-semibold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                    <i data-lucide="calendar-check" class="w-5 h-5"></i> Simpan Status Uzur Multi-Hari
+                </button>
+            </div>
+
+            <!-- Daftar Siswi Sedang Masa Uzur Aktif -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+                <h3 class="font-semibold text-sm text-slate-800 mb-3 flex items-center gap-2">
+                    <i data-lucide="clock" class="w-4 h-4 text-rose-500"></i> Masa Uzur Aktif Hari Ini
+                </h3>
+                <div id="active-uzur-list" class="space-y-2.5 text-sm">
+                    <!-- Diisi via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: REKAP HARIAN, BULANAN & TIDAK SHOLAT-->
+        <!-- ========================================== -->
+        <section id="view-rekap" class="hidden animate-fade-in space-y-5">
+            <!-- Kartu Ringkasan Statistik Hari Ini -->
+            <div class="grid grid-cols-3 gap-3">
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                    <span class="text-[11px] font-medium text-slate-400 block">Hadir Hari Ini</span>
+                    <span id="stat-hadir" class="text-xl sm:text-2xl font-bold text-teal-600 mt-1 block">0</span>
+                </div>
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                    <span class="text-[11px] font-medium text-slate-400 block">Uzur Syar'i</span>
+                    <span id="stat-uzur" class="text-xl sm:text-2xl font-bold text-rose-500 mt-1 block">0</span>
+                </div>
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                    <span class="text-[11px] font-medium text-slate-400 block">Tidak Sholat</span>
+                    <span id="stat-absent" class="text-xl sm:text-2xl font-bold text-amber-600 mt-1 block">0</span>
+                </div>
+            </div>
+
+            <!-- Sub-Tab Navigasi Rekap -->
+            <div class="bg-slate-200/70 p-1 rounded-2xl grid grid-cols-3 gap-1 text-xs font-semibold">
+                <button onclick="switchRekapMode('harian')" id="subtab-harian" class="py-2.5 px-2 rounded-xl bg-white text-teal-800 shadow-sm transition">
+                    Log Hari Ini
+                </button>
+                <button onclick="switchRekapMode('tidak_sholat')" id="subtab-tidak_sholat" class="py-2.5 px-2 rounded-xl text-slate-600 hover:text-slate-900 transition">
+                    Tidak Sholat
+                </button>
+                <button onclick="switchRekapMode('bulanan')" id="subtab-bulanan" class="py-2.5 px-2 rounded-xl text-slate-600 hover:text-slate-900 transition">
+                    Rekap Bulanan
+                </button>
+            </div>
+
+            <!-- KONTEN SUB-TAB 1: LOG HARIAN -->
+            <div id="rekap-panel-harian" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h2 class="font-semibold text-slate-800 flex items-center gap-2 text-sm">
+                        <i data-lucide="clipboard-list" class="w-4 h-4 text-teal-600"></i> Kehadiran Hari Ini
+                    </h2>
+                    <div class="flex items-center gap-2">
+                        <select id="filter-class" onchange="renderLogs()" class="text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 bg-slate-50">
+                            <option value="ALL">Semua Kelas</option>
+                            <option value="X-A">Kelas X-A</option>
+                            <option value="XI-B">Kelas XI-B</option>
+                        </select>
+                        <button onclick="syncFromGoogleSheet()" class="text-xs bg-teal-50 text-teal-700 hover:bg-teal-100 font-medium px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sync
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase">
+                                <th class="py-2.5 px-2">Siswa</th>
+                                <th class="py-2.5 px-2">Sholat</th>
+                                <th class="py-2.5 px-2">Status</th>
+                                <th class="py-2.5 px-2 text-right">Metode</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-log-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Diisi via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- KONTEN SUB-TAB 2: SIAPA SAJA YANG TIDAK SHOLAT HARI INI -->
+            <div id="rekap-panel-tidak_sholat" class="hidden bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h2 class="font-semibold text-slate-800 flex items-center gap-2 text-sm">
+                            <i data-lucide="user-x" class="w-4 h-4 text-amber-600"></i> Siswa Belum / Tidak Sholat Hari Ini
+                        </h2>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Daftar siswa yang belum tercatat hadir dan tidak sedang dalam masa uzur.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="absent-prayer-filter" onchange="renderAbsentToday()" class="text-xs border border-amber-200 bg-amber-50 text-amber-900 font-semibold rounded-xl px-2.5 py-1.5">
+                            <option value="Dhuha">Sholat Dhuha</option>
+                            <option value="Dhuhur" selected>Sholat Dhuhur</option>
+                        </select>
+                        <button onclick="copyAbsentToday()" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition shadow-xs">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Salin Rekap
+                        </button>
+                    </div>
+                </div>
+
+                <div id="absent-today-list" class="space-y-2.5">
+                    <!-- Daftar siswa yang tidak sholat hari ini -->
+                </div>
+            </div>
+
+            <!-- KONTEN SUB-TAB 3: REKAP BULANAN -->
+            <div id="rekap-panel-bulanan" class="hidden bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h2 class="font-semibold text-slate-800 flex items-center gap-2 text-sm">
+                            <i data-lucide="calendar-days" class="w-4 h-4 text-teal-600"></i> Rekapitulasi Bulanan
+                        </h2>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Akumulasi kehadiran Sholat Dhuha, Dhuhur, dan Uzur per siswa.</p>
+                    </div>
+                    <input type="month" id="monthly-filter-input" onchange="renderMonthlyRecap()" class="text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 bg-slate-50 font-medium">
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase">
+                                <th class="py-2.5 px-2">Nama Siswa</th>
+                                <th class="py-2.5 px-2 text-center">Dhuha</th>
+                                <th class="py-2.5 px-2 text-center">Dhuhur</th>
+                                <th class="py-2.5 px-2 text-center">Uzur</th>
+                                <th class="py-2.5 px-2 text-right">Total Hadir</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-recap-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Diisi via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 4: PENGATURAN GOOGLE SHEETS BACKEND    -->
+        <!-- ========================================== -->
+        <section id="view-setup" class="hidden animate-fade-in space-y-5">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="bg-emerald-100 p-2 rounded-xl text-emerald-700">
+                        <i data-lucide="database" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-slate-800">Koneksi Backend Google Sheets</h2>
+                        <p class="text-xs text-slate-500">Hubungkan aplikasi web ini langsung ke file Google Spreadsheet Anda.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-slate-600">URL Web App Google Apps Script</label>
+                    <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="w-full text-xs border border-slate-300 rounded-xl px-3.5 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono">
+                    <div class="flex gap-2 pt-1">
+                        <button onclick="saveGasUrl()" class="flex-1 bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold py-2.5 rounded-xl transition">
+                            Simpan & Hubungkan
+                        </button>
+                        <button onclick="resetDemoData()" class="px-3.5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium rounded-xl transition">
+                            Reset Demo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fitur Ganti Password Akun Superadmin -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="bg-amber-100 p-2 rounded-xl text-amber-700">
+                        <i data-lucide="key-round" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-slate-800">Keamanan Akun Superadmin</h2>
+                        <p class="text-xs text-slate-500">Perbarui password login untuk akun Superadmin.</p>
+                    </div>
+                </div>
+
+                <form onsubmit="handleChangeSuperadminPassword(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Password Lama</label>
+                        <input type="password" id="old-superadmin-pass" required placeholder="Masukkan password saat ini" class="w-full text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Password Baru</label>
+                            <input type="password" id="new-superadmin-pass" required placeholder="Minimal 4 karakter" class="w-full text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Konfirmasi Password Baru</label>
+                            <input type="password" id="confirm-superadmin-pass" required placeholder="Ulangi password baru" class="w-full text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-amber-400"></i> Perbarui Password Superadmin
+                    </button>
+                </form>
+            </div>
+
+            <!-- Fitur Ganti Password Akun Petugas (Khusus Superadmin) -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="bg-teal-100 p-2 rounded-xl text-teal-700">
+                        <i data-lucide="user-cog" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-slate-800">Keamanan Akun Petugas</h2>
+                        <p class="text-xs text-slate-500">Atur ulang password login untuk akun Petugas Piket (hanya dapat diubah oleh Superadmin).</p>
+                    </div>
+                </div>
+
+                <form onsubmit="handleChangePetugasPassword(event)" class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Password Baru Petugas</label>
+                            <input type="password" id="new-petugas-pass" required placeholder="Minimal 3 karakter" class="w-full text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Konfirmasi Password Baru</label>
+                            <input type="password" id="confirm-petugas-pass" required placeholder="Ulangi password baru" class="w-full text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
+                        <i data-lucide="key" class="w-4 h-4 text-teal-200"></i> Simpan Password Petugas
+                    </button>
+                </form>
+            </div>
+
+            <!-- Panduan & Kode Google Apps Script -->
+            <div class="bg-slate-900 text-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold text-sm text-white flex items-center gap-2">
+                        <i data-lucide="code-2" class="w-4 h-4 text-amber-400"></i> Kode Google Apps Script (Backend)
+                    </h3>
+                    <button onclick="copyGasCode()" class="text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 transition">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i> Salin Kode
+                    </button>
+                </div>
+                <ol class="text-xs text-slate-400 list-decimal list-inside space-y-1 leading-relaxed">
+                    <li>Buat Google Sheets baru dengan 3 tab: <code class="text-amber-300">Siswa</code>, <code class="text-amber-300">Log_Menstruasi</code>, dan <code class="text-amber-300">Absensi_Sholat</code>.</li>
+                    <li>Klik menu <strong>Ekstensi (Extensions) &gt; Apps Script</strong>.</li>
+                    <li>Hapus kode lama, tempel kode di bawah ini, lalu klik <strong>Deploy &gt; New Deployment &gt; Web App</strong> (Akses: <em>Anyone / Siapa saja</em>).</li>
+                    <li>Salin URL Web App yang muncul dan tempelkan pada kolom di atas.</li>
+                </ol>
+                <pre id="gas-code-block" class="bg-slate-950 p-3.5 rounded-xl text-[11px] font-mono text-emerald-300 overflow-x-auto max-h-64 leading-relaxed border border-slate-800">function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetSiswa = ss.getSheetByName("Siswa");
+  const sheetAbsen = ss.getSheetByName("Absensi_Sholat");
+  const sheetUzur = ss.getSheetByName("Log_Menstruasi");
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "success",
+    siswa: sheetSiswa ? sheetSiswa.getDataRange().getValues() : [],
+    absensi: sheetAbsen ? sheetAbsen.getDataRange().getValues() : [],
+    uzur: sheetUzur ? sheetUzur.getDataRange().getValues() : []
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const data = JSON.parse(e.postData.contents);
+  
+  if (data.action === "absen_sholat") {
+    let sheet = ss.getSheetByName("Absensi_Sholat");
+    if (!sheet) {
+      sheet = ss.insertSheet("Absensi_Sholat");
+      sheet.appendRow(["ID_Absen", "ID_Siswa", "Nama_Siswa", "Tanggal", "Waktu_Sholat", "Status", "Metode"]);
+    }
+    sheet.appendRow([
+      data.id_absen, data.id_siswa, data.nama_siswa, 
+      data.tanggal, data.waktu_sholat, data.status, data.metode
+    ]);
+  } 
+  else if (data.action === "catat_uzur") {
+    let sheet = ss.getSheetByName("Log_Menstruasi");
+    if (!sheet) {
+      sheet = ss.insertSheet("Log_Menstruasi");
+      sheet.appendRow(["ID_Log_M", "ID_Siswa", "Nama_Siswa", "Tanggal_Mulai", "Durasi_Hari", "Tanggal_Selesai"]);
+    }
+    sheet.appendRow([
+      data.id_log, data.id_siswa, data.nama_siswa, 
+      data.tanggal_mulai, data.durasi, data.tanggal_selesai
+    ]);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({ status: "saved" }))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+            </div>
+
+            <!-- Footer Kredit Pengembang di Halaman Pengaturan -->
+            <div class="text-center py-3">
+                <p class="text-xs text-slate-400">dikembangkan oleh <span class="font-semibold text-slate-500">ariyaxoxo</span></p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="glass-nav fixed bottom-0 left-0 right-0 z-40">
+        <div class="max-w-3xl mx-auto flex justify-around items-center py-2 px-2">
+            <button onclick="switchTab('scan')" id="nav-scan" class="nav-item flex flex-col items-center justify-center py-1.5 px-3 rounded-xl text-teal-700 font-semibold transition">
+                <i data-lucide="qr-code" class="w-5 h-5 mb-0.5"></i>
+                <span class="text-[11px]">Scan Sholat</span>
+            </button>
+            
+            <button onclick="switchTab('uzur')" id="nav-uzur" class="nav-item flex flex-col items-center justify-center py-1.5 px-3 rounded-xl text-slate-500 hover:text-rose-600 transition">
+                <i data-lucide="heart-handshake" class="w-5 h-5 mb-0.5"></i>
+                <span class="text-[11px]">Form Uzur</span>
+            </button>
+            
+            <button onclick="switchTab('rekap')" id="nav-rekap" class="nav-item flex flex-col items-center justify-center py-1.5 px-3 rounded-xl text-slate-500 hover:text-teal-700 transition">
+                <i data-lucide="bar-chart-3" class="w-5 h-5 mb-0.5"></i>
+                <span class="text-[11px]">Rekap</span>
+            </button>
+
+            <button onclick="switchTab('setup')" id="nav-setup" class="nav-item flex flex-col items-center justify-center py-1.5 px-3 rounded-xl text-slate-500 hover:text-teal-700 transition">
+                <i data-lucide="settings" class="w-5 h-5 mb-0.5"></i>
+                <span class="text-[11px]">Google Sheet</span>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        // ==========================================
+        // 1. STATE & DATA INITIALIZATION
+        // ==========================================
+        const DEFAULT_STUDENTS = [
+            { id: 'S001', nama: 'Ahmad Fauzan', kelas: 'X-A', gender: 'Laki-laki' },
+            { id: 'S002', nama: 'Aisyah Putri', kelas: 'X-A', gender: 'Perempuan' },
+            { id: 'S003', nama: 'Fatimah Az-Zahra', kelas: 'XI-B', gender: 'Perempuan' },
+            { id: 'S004', nama: 'Muhammad Rizky', kelas: 'XI-B', gender: 'Laki-laki' }
+        ];
+
+        // 2 Akun Sistem: Petugas (Hanya Input Absen) & Superadmin (Akses Penuh)
+        const DEFAULT_ACCOUNTS = [
+            {
+                username: 'petugas',
+                password: '123',
+                role: 'petugas',
+                displayName: 'Petugas Piket'
+            },
+            {
+                username: 'superadmin',
+                password: '123',
+                role: 'superadmin',
+                displayName: 'Superadmin'
+            }
+        ];
+
+        function getAccounts() {
+            const savedSuperadminPass = localStorage.getItem('ei_superadmin_pass');
+            const savedPetugasPass = localStorage.getItem('ei_petugas_pass');
+            return DEFAULT_ACCOUNTS.map(acc => {
+                if (acc.role === 'superadmin' && savedSuperadminPass) {
+                    return { ...acc, password: savedSuperadminPass };
+                }
+                if (acc.role === 'petugas' && savedPetugasPass) {
+                    return { ...acc, password: savedPetugasPass };
+                }
+                return acc;
+            });
+        }
+
+        let state = {
+            students: JSON.parse(localStorage.getItem('ei_students')) || DEFAULT_STUDENTS,
+            attendanceLogs: JSON.parse(localStorage.getItem('ei_logs')) || [],
+            uzurLogs: JSON.parse(localStorage.getItem('ei_uzur')) || [],
+            gasUrl: localStorage.getItem('ei_gas_url') || '',
+            isAuthenticated: sessionStorage.getItem('ei_officer_auth') === 'true',
+            userRole: sessionStorage.getItem('ei_user_role') || 'petugas',
+            officerName: sessionStorage.getItem('ei_officer_name') || 'Petugas Piket',
+            selectedDuration: 5,
+            html5QrCode: null,
+            isScanning: false
+        };
+
+        // Helper mendapatkan tanggal format YYYY-MM-DD (Lokal)
+        function getTodayStr(offsetDays = 0) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDays);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getCurrentMonthStr() {
+            return getTodayStr().slice(0, 7); // YYYY-MM
+        }
+
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return '-';
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            return new Date(dateStr + 'T00:00:00').toLocaleDateString('id-ID', options);
+        }
+
+        function saveLocalState() {
+            localStorage.setItem('ei_students', JSON.stringify(state.students));
+            localStorage.setItem('ei_logs', JSON.stringify(state.attendanceLogs));
+            localStorage.setItem('ei_uzur', JSON.stringify(state.uzurLogs));
+        }
+
+        // ==========================================
+        // 2. AUTENTIKASI PETUGAS & SUPERADMIN (RBAC)
+        // ==========================================
+        function applyRolePermissions() {
+            const isSuperAdmin = state.userRole === 'superadmin';
+            const navRekap = document.getElementById('nav-rekap');
+            const navSetup = document.getElementById('nav-setup');
+
+            // Petugas hanya bisa melakukan input absen (Scan Sholat & Form Uzur)
+            // Superadmin dapat mengakses seluruh fitur termasuk Rekap & Google Sheet
+            if (isSuperAdmin) {
+                navRekap.classList.remove('hidden');
+                navSetup.classList.remove('hidden');
+            } else {
+                navRekap.classList.add('hidden');
+                navSetup.classList.add('hidden');
+            }
+        }
+
+        function checkAuthStatus() {
+            const loginScreen = document.getElementById('login-screen');
+            if (state.isAuthenticated) {
+                loginScreen.classList.add('hidden');
+                document.getElementById('officer-name-badge').textContent = state.officerName;
+                applyRolePermissions();
+                switchTab('scan');
+            } else {
+                loginScreen.classList.remove('hidden');
+            }
+        }
+
+        function handleOfficerLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('login-username').value.trim().toLowerCase();
+            const pass = document.getElementById('login-password').value.trim();
+
+            const matchedAccount = getAccounts().find(
+                acc => acc.username === user && acc.password === pass
+            );
+
+            if (matchedAccount) {
+                state.isAuthenticated = true;
+                state.userRole = matchedAccount.role;
+                state.officerName = matchedAccount.displayName;
+                
+                sessionStorage.setItem('ei_officer_auth', 'true');
+                sessionStorage.setItem('ei_user_role', matchedAccount.role);
+                sessionStorage.setItem('ei_officer_name', matchedAccount.displayName);
+                
+                checkAuthStatus();
+                showToast(`Selamat datang, ${state.officerName}!`, 'success');
+            } else {
+                showToast('Username atau Password tidak valid.', 'error');
+            }
+        }
+
+        function logoutOfficer() {
+            if (state.isScanning) stopScanner();
+            state.isAuthenticated = false;
+            state.userRole = 'petugas';
+            sessionStorage.removeItem('ei_officer_auth');
+            sessionStorage.removeItem('ei_user_role');
+            sessionStorage.removeItem('ei_officer_name');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            checkAuthStatus();
+            showToast('Anda telah keluar dari sesi.', 'info');
+        }
+
+        function handleChangeSuperadminPassword(e) {
+            e.preventDefault();
+            if (state.userRole !== 'superadmin') {
+                showToast('Hanya Superadmin yang dapat mengubah password ini.', 'error');
+                return;
+            }
+
+            const oldPass = document.getElementById('old-superadmin-pass').value.trim();
+            const newPass = document.getElementById('new-superadmin-pass').value.trim();
+            const confirmPass = document.getElementById('confirm-superadmin-pass').value.trim();
+
+            const currentSuperadmin = getAccounts().find(acc => acc.role === 'superadmin');
+
+            if (oldPass !== currentSuperadmin.password) {
+                showToast('Password lama tidak sesuai!', 'error');
+                return;
+            }
+
+            if (newPass.length < 4) {
+                showToast('Password baru minimal 4 karakter.', 'error');
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                showToast('Konfirmasi password baru tidak cocok!', 'error');
+                return;
+            }
+
+            localStorage.setItem('ei_superadmin_pass', newPass);
+            document.getElementById('old-superadmin-pass').value = '';
+            document.getElementById('new-superadmin-pass').value = '';
+            document.getElementById('confirm-superadmin-pass').value = '';
+            showToast('Password Superadmin berhasil diperbarui!', 'success');
+        }
+
+        function handleChangePetugasPassword(e) {
+            e.preventDefault();
+            if (state.userRole !== 'superadmin') {
+                showToast('Akses ditolak! Hanya Superadmin yang dapat mengubah password Petugas.', 'error');
+                return;
+            }
+
+            const newPass = document.getElementById('new-petugas-pass').value.trim();
+            const confirmPass = document.getElementById('confirm-petugas-pass').value.trim();
+
+            if (newPass.length < 3) {
+                showToast('Password baru Petugas minimal 3 karakter.', 'error');
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                showToast('Konfirmasi password baru Petugas tidak cocok!', 'error');
+                return;
+            }
+
+            localStorage.setItem('ei_petugas_pass', newPass);
+            document.getElementById('new-petugas-pass').value = '';
+            document.getElementById('confirm-petugas-pass').value = '';
+            showToast('Password akun Petugas berhasil diperbarui!', 'success');
+        }
+
+        // ==========================================
+        // 3. INITIALIZE UI & EVENT LISTENERS
+        // ==========================================
+        window.onload = function () {
+            lucide.createIcons();
+            checkAuthStatus();
+            
+            // Set tanggal hari ini & bulan aktif
+            const today = getTodayStr();
+            document.getElementById('current-date-badge').textContent = formatDisplayDate(today);
+            document.getElementById('uzur-start-date').value = today;
+            document.getElementById('uzur-start-date').addEventListener('change', updateUzurEndPreview);
+            document.getElementById('monthly-filter-input').value = getCurrentMonthStr();
+            
+            // Deteksi otomatis waktu sholat (Hanya Dhuha atau Dhuhur)
+            autoDetectPrayerTime();
+
+            // Load GAS URL jika tersimpan
+            if (state.gasUrl) {
+                document.getElementById('gas-url-input').value = state.gasUrl;
+                updateConnectionBadge(true);
+            }
+
+            populateDropdowns();
+            updateUzurEndPreview();
+            renderSearchQrCards();
+            renderAll();
+        };
+
+        function autoDetectPrayerTime() {
+            const hour = new Date().getHours();
+            const select = document.getElementById('prayer-time-select');
+            const absentFilter = document.getElementById('absent-prayer-filter');
+            // Jam 06:00 - 10:59 otomatis Dhuha, selain itu Dhuhur
+            const defaultPrayer = (hour >= 6 && hour < 11) ? 'Dhuha' : 'Dhuhur';
+            select.value = defaultPrayer;
+            absentFilter.value = defaultPrayer;
+        }
+
+        function populateDropdowns() {
+            filterUzurStudents();
+        }
+
+        function filterUzurStudents() {
+            const searchEl = document.getElementById('uzur-search-input');
+            const keyword = searchEl ? searchEl.value.trim().toLowerCase() : '';
+            const uzurSelect = document.getElementById('uzur-student-select');
+            uzurSelect.innerHTML = '';
+
+            const femaleStudents = state.students.filter(s => 
+                s.gender === 'Perempuan' && (
+                    s.nama.toLowerCase().includes(keyword) ||
+                    s.id.toLowerCase().includes(keyword) ||
+                    s.kelas.toLowerCase().includes(keyword)
+                )
+            );
+
+            if (femaleStudents.length === 0) {
+                uzurSelect.innerHTML = `<option value="">-- Siswi tidak ditemukan --</option>`;
+                return;
+            }
+
+            femaleStudents.forEach(s => {
+                uzurSelect.innerHTML += `<option value="${s.id}">${s.nama} - Kelas ${s.kelas} (${s.id})</option>`;
+            });
+        }
+
+        // ==========================================
+        // 4. NAVIGASI TAB UTAMA & SUB-TAB REKAP
+        // ==========================================
+        function switchTab(tabName) {
+            // Proteksi akses jika role petugas mencoba membuka tab khusus superadmin
+            if (state.userRole !== 'superadmin' && (tabName === 'rekap' || tabName === 'setup')) {
+                showToast('Akses ditolak. Fitur ini khusus Superadmin.', 'error');
+                return;
+            }
+
+            if (tabName !== 'scan' && state.isScanning) {
+                stopScanner();
+            }
+
+            ['scan', 'uzur', 'rekap', 'setup'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${t}`);
+                navBtn.classList.remove('text-teal-700', 'text-rose-600', 'font-semibold', 'bg-slate-100/80');
+                navBtn.classList.add('text-slate-500');
+            });
+
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tabName}`);
+            activeBtn.classList.remove('text-slate-500');
+            activeBtn.classList.add(tabName === 'uzur' ? 'text-rose-600' : 'text-teal-700', 'font-semibold', 'bg-slate-100/80');
+
+            if (tabName === 'rekap') renderAll();
+        }
+
+        function switchRekapMode(mode) {
+            ['harian', 'tidak_sholat', 'bulanan'].forEach(m => {
+                document.getElementById(`rekap-panel-${m}`).classList.add('hidden');
+                const btn = document.getElementById(`subtab-${m}`);
+                btn.className = 'py-2.5 px-2 rounded-xl text-slate-600 hover:text-slate-900 transition';
+            });
+
+            document.getElementById(`rekap-panel-${mode}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`subtab-${mode}`);
+            activeBtn.className = 'py-2.5 px-2 rounded-xl bg-white text-teal-800 shadow-sm transition';
+
+            if (mode === 'tidak_sholat') renderAbsentToday();
+            if (mode === 'bulanan') renderMonthlyRecap();
+        }
+
+        // ==========================================
+        // 5. PENCARIAN NAMA SISWA + SAMPEL QR
+        // ==========================================
+        function renderSearchQrCards() {
+            const keyword = document.getElementById('search-student-scan').value.trim().toLowerCase();
+            const container = document.getElementById('search-qr-results');
+
+            const matched = state.students.filter(s => 
+                s.nama.toLowerCase().includes(keyword) || 
+                s.id.toLowerCase().includes(keyword) ||
+                s.kelas.toLowerCase().includes(keyword)
+            );
+
+            if (matched.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center text-xs text-slate-400 py-4">Siswa dengan kata kunci "${keyword}" tidak ditemukan.</p>`;
+                return;
+            }
+
+            container.innerHTML = matched.map(s => {
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(s.id)}`;
+                return `
+                    <div onclick="processScan('${s.id}', 'Klik Kartu QR')" class="cursor-pointer group border border-slate-200 hover:border-teal-500 rounded-xl p-2.5 text-center bg-slate-50/70 hover:bg-teal-50/50 transition flex flex-col items-center shadow-2xs">
+                        <img src="${qrUrl}" alt="QR ${s.id}" class="w-20 h-20 rounded-lg bg-white p-1 border border-slate-100 mb-2 group-hover:scale-105 transition" onerror="this.src='https://placehold.co/120x120/e2e8f0/475569?text=${s.id}'">
+                        <span class="text-[11px] font-bold text-teal-800">${s.id}</span>
+                        <span class="text-xs font-semibold text-slate-700 truncate w-full">${s.nama}</span>
+                        <span class="text-[10px] text-slate-400">${s.kelas}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // 6. LOGIKA SCANNER QR & ABSENSI SHOLAT
+        // ==========================================
+        function toggleScanner() {
+            if (state.isScanning) {
+                stopScanner();
+            } else {
+                startScanner();
+            }
+        }
+
+        function startScanner() {
+            const wrapper = document.getElementById('scanner-wrapper');
+            const btnText = document.getElementById('camera-btn-text');
+
+            if (typeof Html5Qrcode === 'undefined') {
+                showToast('Library kamera belum termuat. Periksa koneksi internet Anda.', 'error');
+                return;
+            }
+
+            wrapper.classList.remove('hidden');
+            btnText.textContent = 'Matikan Kamera';
+
+            state.html5QrCode = new Html5Qrcode("qr-reader");
+            state.html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 220, height: 220 } },
+                (decodedText) => {
+                    processScan(decodedText.trim().toUpperCase(), 'Scan Kamera QR');
+                    stopScanner();
+                },
+                () => {}
+            ).then(() => {
+                state.isScanning = true;
+            }).catch((err) => {
+                console.warn('Camera access error:', err);
+                showToast('Kamera diblokir oleh jendela preview/browser. Buka lewat HTTPS langsung untuk memakai kamera.', 'error');
+                stopScanner();
+            });
+        }
+
+        function stopScanner() {
+            const wrapper = document.getElementById('scanner-wrapper');
+            const btnText = document.getElementById('camera-btn-text');
+
+            if (state.html5QrCode && state.isScanning) {
+                state.html5QrCode.stop().then(() => {
+                    state.html5QrCode.clear();
+                }).catch(() => {});
+            }
+            state.isScanning = false;
+            wrapper.classList.add('hidden');
+            btnText.textContent = 'Aktifkan Kamera';
+        }
+
+        function parseBatchStudentIds(rawText) {
+            if (!rawText) return [];
+            const tokens = rawText
+                .toUpperCase()
+                .split(/[\s,;]+/)
+                .map(item => item.trim())
+                .filter(Boolean);
+            return [...new Set(tokens)];
+        }
+
+        function updateBatchIdCounter() {
+            const input = document.getElementById('manual-student-id');
+            const counterEl = document.getElementById('batch-id-counter');
+            const uniqueIds = parseBatchStudentIds(input.value);
+            const count = uniqueIds.length;
+
+            counterEl.textContent = `${count} / 50 ID`;
+            if (count > 50) {
+                counterEl.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700';
+            } else if (count > 0) {
+                counterEl.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800';
+            } else {
+                counterEl.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600';
+            }
+        }
+
+        async function handleManualScan() {
+            const input = document.getElementById('manual-student-id');
+            const uniqueIds = parseBatchStudentIds(input.value);
+
+            if (uniqueIds.length === 0) {
+                showToast('Masukkan minimal 1 ID Siswa terlebih dahulu.', 'error');
+                return;
+            }
+
+            if (uniqueIds.length > 50) {
+                showToast(`Maksimal 50 ID siswa sekaligus (saat ini terdeteksi ${uniqueIds.length} ID).`, 'error');
+                return;
+            }
+
+            if (uniqueIds.length === 1) {
+                await processScan(uniqueIds[0], 'Input Manual');
+                input.value = '';
+                updateBatchIdCounter();
+                return;
+            }
+
+            // Proses Massal (2 s/d 50 ID)
+            const today = getTodayStr();
+            const waktuSholat = document.getElementById('prayer-time-select').value;
+            let suksesCount = 0;
+            let uzurCount = 0;
+            let duplikatCount = 0;
+            let tidakDitemukan = [];
+
+            for (const studentId of uniqueIds) {
+                const student = state.students.find(s => s.id === studentId);
+                if (!student) {
+                    tidakDitemukan.push(studentId);
+                    continue;
+                }
+
+                const alreadyLogged = state.attendanceLogs.some(
+                    log => log.id_siswa === studentId && log.tanggal === today && log.waktu_sholat === waktuSholat
+                );
+                if (alreadyLogged) {
+                    duplikatCount++;
+                    continue;
+                }
+
+                const sedangUzur = isStudentInUzurPeriod(studentId, today);
+                const finalStatus = sedangUzur ? "Uzur Syar'i" : "Hadir";
+
+                const newRecord = {
+                    id_absen: 'ABS-' + Date.now().toString().slice(-6) + '-' + student.id,
+                    id_siswa: student.id,
+                    nama_siswa: student.nama,
+                    kelas: student.kelas,
+                    tanggal: today,
+                    waktu_sholat: waktuSholat,
+                    status: finalStatus,
+                    metode: sedangUzur ? 'Auto Smart-Uzur' : 'Input Massal'
+                };
+
+                state.attendanceLogs.unshift(newRecord);
+                if (sedangUzur) uzurCount++;
+                else suksesCount++;
+
+                await postToGoogleSheet({ action: 'absen_sholat', ...newRecord });
+            }
+
+            saveLocalState();
+            renderAll();
+            input.value = '';
+            updateBatchIdCounter();
+
+            let ringkasan = `Selesai (${waktuSholat}): ${suksesCount} Hadir`;
+            if (uzurCount > 0) ringkasan += `, ${uzurCount} Uzur`;
+            if (duplikatCount > 0) ringkasan += `, ${duplikatCount} sudah absen`;
+            if (tidakDitemukan.length > 0) ringkasan += `, ${tidakDitemukan.length} ID tidak valid`;
+
+            showToast(ringkasan, (suksesCount + uzurCount) > 0 ? 'success' : 'error');
+        }
+
+        function isStudentInUzurPeriod(studentId, targetDate) {
+            return state.uzurLogs.some(u => 
+                u.id_siswa === studentId && 
+                targetDate >= u.tanggal_mulai && 
+                targetDate <= u.tanggal_selesai
+            );
+        }
+
+        async function processScan(studentId, metode) {
+            const student = state.students.find(s => s.id === studentId);
+            if (!student) {
+                showToast(`ID Siswa "${studentId}" tidak ditemukan di database!`, 'error');
+                return;
+            }
+
+            const today = getTodayStr();
+            const waktuSholat = document.getElementById('prayer-time-select').value;
+
+            const alreadyLogged = state.attendanceLogs.some(
+                log => log.id_siswa === studentId && log.tanggal === today && log.waktu_sholat === waktuSholat
+            );
+
+            if (alreadyLogged) {
+                showToast(`${student.nama} sudah tercatat untuk Sholat ${waktuSholat} hari ini.`, 'info');
+                return;
+            }
+
+            const sedangUzur = isStudentInUzurPeriod(studentId, today);
+            const finalStatus = sedangUzur ? "Uzur Syar'i" : "Hadir";
+
+            const newRecord = {
+                id_absen: 'ABS-' + Date.now().toString().slice(-6),
+                id_siswa: student.id,
+                nama_siswa: student.nama,
+                kelas: student.kelas,
+                tanggal: today,
+                waktu_sholat: waktuSholat,
+                status: finalStatus,
+                metode: sedangUzur ? 'Auto Smart-Uzur' : metode
+            };
+
+            state.attendanceLogs.unshift(newRecord);
+            saveLocalState();
+            renderAll();
+
+            if (sedangUzur) {
+                showToast(`${student.nama} sedang masa uzur. Tercatat otomatis: Uzur Syar'i.`, 'uzur');
+            } else {
+                showToast(`Berhasil! ${student.nama} (Sholat ${waktuSholat}) tercatat Hadir.`, 'success');
+            }
+
+            await postToGoogleSheet({ action: 'absen_sholat', ...newRecord });
+        }
+
+        // ==========================================
+        // 7. LOGIKA SMART UZUR (MULTI-HARI)
+        // ==========================================
+        function selectDuration(days) {
+            state.selectedDuration = days;
+            [3, 5, 7].forEach(d => {
+                const btn = document.getElementById(`dur-btn-${d}`);
+                if (d === days) {
+                    btn.className = 'dur-btn border-2 border-rose-500 bg-rose-50/70 rounded-xl py-3 px-2 text-center transition';
+                    btn.querySelector('span:first-child').className = 'block text-lg font-bold text-rose-700';
+                } else {
+                    btn.className = 'dur-btn border-2 border-slate-200 hover:border-rose-400 rounded-xl py-3 px-2 text-center transition';
+                    btn.querySelector('span:first-child').className = 'block text-lg font-bold text-slate-800';
+                }
+            });
+            updateUzurEndPreview();
+        }
+
+        function calculateEndDate(startDateStr, durationDays) {
+            const d = new Date(startDateStr + 'T00:00:00');
+            d.setDate(d.getDate() + (parseInt(durationDays) - 1));
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function updateUzurEndPreview() {
+            const startDate = document.getElementById('uzur-start-date').value;
+            if (!startDate) return;
+            const endDate = calculateEndDate(startDate, state.selectedDuration);
+            document.getElementById('uzur-end-preview').textContent = formatDisplayDate(endDate);
+        }
+
+        async function submitUzur() {
+            const studentId = document.getElementById('uzur-student-select').value;
+            const startDate = document.getElementById('uzur-start-date').value;
+            const student = state.students.find(s => s.id === studentId);
+
+            if (!student || !startDate) {
+                showToast('Lengkapi data siswi dan tanggal mulai.', 'error');
+                return;
+            }
+
+            const endDate = calculateEndDate(startDate, state.selectedDuration);
+            const uzurRecord = {
+                id_log: 'UZR-' + Date.now().toString().slice(-6),
+                id_siswa: student.id,
+                nama_siswa: student.nama,
+                kelas: student.kelas,
+                tanggal_mulai: startDate,
+                durasi: state.selectedDuration,
+                tanggal_selesai: endDate
+            };
+
+            state.uzurLogs.unshift(uzurRecord);
+
+            // Otomatis buatkan entri Uzur Syar'i untuk Dhuha & Dhuhur hari ini jika masuk rentang tanggal
+            const today = getTodayStr();
+            if (today >= startDate && today <= endDate) {
+                for (const waktu of ['Dhuha', 'Dhuhur']) {
+                    const existingIdx = state.attendanceLogs.findIndex(
+                        l => l.id_siswa === student.id && l.tanggal === today && l.waktu_sholat === waktu
+                    );
+                    const autoAbsen = {
+                        id_absen: 'ABS-' + Date.now().toString().slice(-6) + waktu[2],
+                        id_siswa: student.id,
+                        nama_siswa: student.nama,
+                        kelas: student.kelas,
+                        tanggal: today,
+                        waktu_sholat: waktu,
+                        status: "Uzur Syar'i",
+                        metode: 'Smart Scan Uzur'
+                    };
+                    if (existingIdx > -1) {
+                        state.attendanceLogs[existingIdx] = autoAbsen;
+                    } else {
+                        state.attendanceLogs.unshift(autoAbsen);
+                        await postToGoogleSheet({ action: 'absen_sholat', ...autoAbsen });
+                    }
+                }
+            }
+
+            saveLocalState();
+            renderAll();
+            showToast(`Uzur tercatat untuk ${student.nama} (${state.selectedDuration} hari).`, 'uzur');
+
+            await postToGoogleSheet({ action: 'catat_uzur', ...uzurRecord });
+        }
+
+        // ==========================================
+        // 8. RENDERING UI, TIDAK SHOLAT & REKAP BULANAN
+        // ==========================================
+        function renderAll() {
+            const today = getTodayStr();
+            const activePrayer = document.getElementById('prayer-time-select').value;
+            document.getElementById('selected-prayer-label').textContent = activePrayer;
+
+            const todayLogs = state.attendanceLogs.filter(l => l.tanggal === today);
+            const prayerLogs = todayLogs.filter(l => l.waktu_sholat === activePrayer);
+
+            // Hitung statistik berdasarkan waktu sholat aktif
+            const hadirCount = prayerLogs.filter(l => l.status === 'Hadir').length;
+            const uzurCount = state.students.filter(s => isStudentInUzurPeriod(s.id, today)).length;
+            
+            // Siswa tidak sholat = Total siswa dikurangi yang sudah Hadir dan yang sedang Uzur
+            const accountedIds = new Set(
+                prayerLogs.map(l => l.id_siswa).concat(
+                    state.students.filter(s => isStudentInUzurPeriod(s.id, today)).map(s => s.id)
+                )
+            );
+            const absentCount = Math.max(0, state.students.length - accountedIds.size);
+
+            document.getElementById('today-present-count').textContent = hadirCount;
+            document.getElementById('stat-hadir').textContent = hadirCount;
+            document.getElementById('stat-uzur').textContent = uzurCount;
+            document.getElementById('stat-absent').textContent = absentCount;
+
+            renderLogs();
+            renderActiveUzurList();
+            renderAbsentToday();
+            renderMonthlyRecap();
+        }
+
+        function renderLogs() {
+            const tbody = document.getElementById('attendance-log-body');
+            const filterClass = document.getElementById('filter-class').value;
+            const today = getTodayStr();
+
+            let filtered = state.attendanceLogs.filter(l => l.tanggal === today);
+            if (filterClass !== 'ALL') {
+                filtered = filtered.filter(l => l.kelas === filterClass);
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-8 text-center text-xs text-slate-400">
+                            Belum ada data absensi hari ini. Silakan lakukan scan QR atau input uzur.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(log => {
+                const isUzur = log.status === "Uzur Syar'i";
+                const badgeClass = isUzur 
+                    ? 'bg-rose-100 text-rose-700 border-rose-200' 
+                    : 'bg-teal-100 text-teal-800 border-teal-200';
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-2">
+                            <div class="font-semibold text-slate-800 text-xs sm:text-sm">${log.nama_siswa}</div>
+                            <div class="text-[11px] text-slate-400">${log.id_siswa} • ${log.kelas}</div>
+                        </td>
+                        <td class="py-3 px-2 text-xs font-medium text-slate-600">${log.waktu_sholat}</td>
+                        <td class="py-3 px-2">
+                            <span class="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${badgeClass}">
+                                ${log.status}
+                            </span>
+                        </td>
+                        <td class="py-3 px-2 text-right text-[11px] text-slate-400">${log.metode}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Fitur 3A: Siapa saja yang tidak sholat hari ini
+        function getAbsentStudentsList(targetPrayer) {
+            const today = getTodayStr();
+            const presentOrExcusedIds = new Set(
+                state.attendanceLogs
+                    .filter(l => l.tanggal === today && l.waktu_sholat === targetPrayer)
+                    .map(l => l.id_siswa)
+            );
+
+            // Tambahkan juga siswi yang sedang dalam masa uzur aktif
+            state.students.forEach(s => {
+                if (isStudentInUzurPeriod(s.id, today)) {
+                    presentOrExcusedIds.add(s.id);
+                }
+            });
+
+            return state.students.filter(s => !presentOrExcusedIds.has(s.id));
+        }
+
+        function renderAbsentToday() {
+            const container = document.getElementById('absent-today-list');
+            const targetPrayer = document.getElementById('absent-prayer-filter').value;
+            const absentStudents = getAbsentStudentsList(targetPrayer);
+
+            if (absentStudents.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 bg-teal-50/60 rounded-xl border border-teal-100">
+                        <p class="text-xs font-semibold text-teal-800">Alhamdulillah! Semua siswa sudah tercatat Hadir atau Uzur untuk Sholat ${targetPrayer}.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = absentStudents.map(s => `
+                <div class="flex items-center justify-between p-3 rounded-xl bg-amber-50/70 border border-amber-200/80">
+                    <div>
+                        <p class="font-semibold text-slate-800 text-xs sm:text-sm">${s.nama}</p>
+                        <p class="text-[11px] text-slate-500">${s.id} • Kelas ${s.kelas} • ${s.gender}</p>
+                    </div>
+                    <button onclick="markAbsentExplicit('${s.id}', '${targetPrayer}')" class="text-[11px] font-semibold bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1.5 rounded-lg transition">
+                        Catat Tidak Sholat
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function copyAbsentToday() {
+            const targetPrayer = document.getElementById('absent-prayer-filter').value;
+            const absentStudents = getAbsentStudentsList(targetPrayer);
+
+            if (absentStudents.length === 0) {
+                showToast(`Tidak ada siswa yang bolos/belum sholat ${targetPrayer} hari ini.`, 'info');
+                return;
+            }
+
+            const todayFormatted = formatDisplayDate(getTodayStr());
+            const lines = absentStudents.map((s, idx) => `${idx + 1}. ${s.nama} (${s.kelas})`);
+            const textToCopy = `Rekap Siswa Tidak Sholat ${targetPrayer} (${todayFormatted}):\n` + lines.join('\n');
+
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = textToCopy;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            showToast(`Berhasil menyalin ${absentStudents.length} nama siswa ke clipboard!`, 'success');
+        }
+
+        async function markAbsentExplicit(studentId, waktuSholat) {
+            const student = state.students.find(s => s.id === studentId);
+            if (!student) return;
+
+            const record = {
+                id_absen: 'ABS-' + Date.now().toString().slice(-6),
+                id_siswa: student.id,
+                nama_siswa: student.nama,
+                kelas: student.kelas,
+                tanggal: getTodayStr(),
+                waktu_sholat: waktuSholat,
+                status: 'Tidak Sholat',
+                metode: 'Verifikasi Petugas'
+            };
+
+            state.attendanceLogs.unshift(record);
+            saveLocalState();
+            renderAll();
+            showToast(`${student.nama} dicatat Tidak Sholat (${waktuSholat}).`, 'info');
+            await postToGoogleSheet({ action: 'absen_sholat', ...record });
+        }
+
+        // Fitur 3B: Rekap Bulanan
+        function renderMonthlyRecap() {
+            const tbody = document.getElementById('monthly-recap-body');
+            const selectedMonth = document.getElementById('monthly-filter-input').value || getCurrentMonthStr();
+
+            const monthLogs = state.attendanceLogs.filter(l => l.tanggal.startsWith(selectedMonth));
+
+            tbody.innerHTML = state.students.map(s => {
+                const studentLogs = monthLogs.filter(l => l.id_siswa === s.id);
+                const dhuhaCount = studentLogs.filter(l => l.waktu_sholat === 'Dhuha' && l.status === 'Hadir').length;
+                const dhuhurCount = studentLogs.filter(l => l.waktu_sholat === 'Dhuhur' && l.status === 'Hadir').length;
+                const uzurCount = studentLogs.filter(l => l.status === "Uzur Syar'i").length;
+                const totalHadir = dhuhaCount + dhuhurCount;
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-2">
+                            <div class="font-semibold text-slate-800 text-xs sm:text-sm">${s.nama}</div>
+                            <div class="text-[11px] text-slate-400">${s.kelas}</div>
+                        </td>
+                        <td class="py-3 px-2 text-center font-medium text-xs text-slate-700">${dhuhaCount}x</td>
+                        <td class="py-3 px-2 text-center font-medium text-xs text-slate-700">${dhuhurCount}x</td>
+                        <td class="py-3 px-2 text-center font-medium text-xs text-rose-600">${uzurCount}x</td>
+                        <td class="py-3 px-2 text-right">
+                            <span class="inline-block bg-teal-50 text-teal-800 border border-teal-200 font-bold text-xs px-2.5 py-0.5 rounded-lg">
+                                ${totalHadir}x
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderActiveUzurList() {
+            const container = document.getElementById('active-uzur-list');
+            const today = getTodayStr();
+            const activeList = state.uzurLogs.filter(u => today >= u.tanggal_mulai && today <= u.tanggal_selesai);
+
+            if (activeList.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic">Tidak ada siswi yang sedang dalam masa uzur aktif hari ini.</p>`;
+                return;
+            }
+
+            container.innerHTML = activeList.map(u => `
+                <div class="flex items-center justify-between p-3 rounded-xl bg-rose-50/60 border border-rose-100">
+                    <div>
+                        <p class="font-semibold text-slate-800 text-xs">${u.nama_siswa} <span class="text-slate-400 font-normal">(${u.kelas})</span></p>
+                        <p class="text-[11px] text-rose-700 mt-0.5">
+                            ${formatDisplayDate(u.tanggal_mulai)} s/d ${formatDisplayDate(u.tanggal_selesai)} (${u.durasi} Hari)
+                        </p>
+                    </div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider bg-rose-200/70 text-rose-800 px-2 py-1 rounded-lg">Aktif</span>
+                </div>
+            `).join('');
+        }
+
+        // ==========================================
+        // 9. INTEGRASI GOOGLE SHEETS (GAS API)
+        // ==========================================
+        function saveGasUrl() {
+            const url = document.getElementById('gas-url-input').value.trim();
+            state.gasUrl = url;
+            localStorage.setItem('ei_gas_url', url);
+            
+            if (url) {
+                updateConnectionBadge(true);
+                showToast('URL Google Apps Script disimpan! Mencoba sinkronisasi...', 'success');
+                syncFromGoogleSheet();
+            } else {
+                updateConnectionBadge(false);
+                showToast('URL dikosongkan. Kembali ke Mode Demo Lokal.', 'info');
+            }
+        }
+
+        function updateConnectionBadge(isConnected) {
+            const el = document.getElementById('connection-status');
+            if (isConnected) {
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span> Terhubung ke Google Sheets`;
+            } else {
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Mode Demo Lokal (Belum Terhubung Sheet)`;
+            }
+        }
+
+        async function postToGoogleSheet(payload) {
+            if (!state.gasUrl) return;
+            try {
+                await fetch(state.gasUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                console.error('Gagal mengirim ke Google Sheet:', err);
+                showToast('Data tersimpan lokal, namun gagal sinkron ke Google Sheet.', 'error');
+            }
+        }
+
+        async function syncFromGoogleSheet() {
+            if (!state.gasUrl) {
+                showToast('Masukkan URL Google Apps Script di tab Google Sheet terlebih dahulu.', 'info');
+                return;
+            }
+            try {
+                const res = await fetch(state.gasUrl);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    if (data.siswa && data.siswa.length > 1) {
+                        state.students = data.siswa.slice(1).map(row => ({
+                            id: String(row[0]),
+                            nama: String(row[1]),
+                            kelas: String(row[2]),
+                            gender: String(row[3])
+                        }));
+                        populateDropdowns();
+                        renderSearchQrCards();
+                    }
+                    saveLocalState();
+                    renderAll();
+                    showToast('Berhasil sinkronisasi data dari Google Sheets!', 'success');
+                }
+            } catch (err) {
+                showToast('Gagal mengambil data dari Google Sheet. Periksa izin deployment Web App.', 'error');
+            }
+        }
+
+        function copyGasCode() {
+            const codeText = document.getElementById('gas-code-block').innerText;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = codeText;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+            showToast('Kode Google Apps Script berhasil disalin!', 'success');
+        }
+
+        function resetDemoData() {
+            localStorage.removeItem('ei_logs');
+            localStorage.removeItem('ei_uzur');
+            localStorage.removeItem('ei_students');
+            state.students = DEFAULT_STUDENTS;
+            state.attendanceLogs = [];
+            state.uzurLogs = [];
+            populateDropdowns();
+            renderSearchQrCards();
+            renderAll();
+            showToast('Data demo lokal berhasil di-reset.', 'info');
+        }
+
+        // ==========================================
+        // 10. CUSTOM NOTIFICATION TOAST
+        // ==========================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let styles = 'bg-slate-800 text-white border-slate-700';
+            if (type === 'success') styles = 'bg-teal-800 text-white border-teal-600';
+            if (type === 'uzur') styles = 'bg-rose-700 text-white border-rose-500';
+            if (type === 'error') styles = 'bg-red-700 text-white border-red-500';
+
+            toast.className = `${styles} border px-4 py-3 rounded-2xl shadow-lg text-xs sm:text-sm font-medium flex items-center justify-between gap-3 animate-fade-in pointer-events-auto`;
+            toast.innerHTML = `<span>${message}</span>`;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+    </script>
+</body>
+</html>
