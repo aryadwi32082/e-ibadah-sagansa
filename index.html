@@ -256,14 +256,9 @@
                     </select>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Tanggal Uzur (Berlaku Harian)</label>
-                    <input type="date" id="uzur-start-date" class="w-full text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-rose-400">
-                </div>
-
-                <!-- Preview Status Harian -->
+                <!-- Preview Status Harian Otomatis Hari Ini -->
                 <div class="bg-rose-50/70 rounded-xl p-3.5 border border-rose-200/70 flex items-center justify-between text-xs">
-                    <span class="text-rose-800">Berlaku otomatis (Dhuha & Dhuhur) pada:</span>
+                    <span class="text-rose-800">Berlaku otomatis (Dhuha & Dhuhur) hari ini:</span>
                     <span id="uzur-end-preview" class="font-bold text-rose-700 text-sm">-</span>
                 </div>
 
@@ -818,8 +813,6 @@ function doPost(e) {
             // Set tanggal hari ini & bulan aktif
             const today = getTodayStr();
             document.getElementById('current-date-badge').textContent = formatDisplayDate(today);
-            document.getElementById('uzur-start-date').value = today;
-            document.getElementById('uzur-start-date').addEventListener('change', updateUzurEndPreview);
             document.getElementById('monthly-filter-input').value = getCurrentMonthStr();
             
             // Deteksi otomatis waktu sholat (Hanya Dhuha atau Dhuhur)
@@ -1204,9 +1197,11 @@ function doPost(e) {
         }
 
         function updateUzurEndPreview() {
-            const startDate = document.getElementById('uzur-start-date').value;
-            if (!startDate) return;
-            document.getElementById('uzur-end-preview').textContent = formatDisplayDate(startDate) + ' (1 Hari)';
+            const today = getTodayStr();
+            const previewEl = document.getElementById('uzur-end-preview');
+            if (previewEl) {
+                previewEl.textContent = formatDisplayDate(today) + ' (1 Hari)';
+            }
         }
 
         async function processUzurScan(studentId) {
@@ -1220,17 +1215,17 @@ function doPost(e) {
                 return;
             }
 
-            const targetDate = document.getElementById('uzur-start-date').value || getTodayStr();
+            const targetDate = getTodayStr();
             await recordDailyUzur(student, targetDate, 'Scan Kamera QR Uzur');
         }
 
         async function submitUzur() {
             const studentId = document.getElementById('uzur-student-select').value;
-            const targetDate = document.getElementById('uzur-start-date').value;
+            const targetDate = getTodayStr();
             const student = state.students.find(s => s.id === studentId);
 
-            if (!student || !targetDate) {
-                showToast('Lengkapi data siswi dan tanggal uzur.', 'error');
+            if (!student) {
+                showToast('Pilih nama siswi terlebih dahulu.', 'error');
                 return;
             }
 
