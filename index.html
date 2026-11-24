@@ -925,6 +925,10 @@ function doPost(e) {
                 renderAll();
                 if (state.gasUrl) syncFromGoogleSheet(true);
             }
+            if (tabName === 'uzur') {
+                renderActiveUzurList();
+                if (state.gasUrl) syncFromGoogleSheet(true);
+            }
         }
 
         function switchRekapMode(mode) {
@@ -940,6 +944,199 @@ function doPost(e) {
 
             if (mode === 'tidak_sholat') renderAbsentToday();
             if (mode === 'bulanan') renderMonthlyRecap();
+        }
+
+        // ==========================================
+        // 5. QR SCANNER & ABSENSI SHOLAT (DHUHA/DHUHUR)
+        // ==========================================
+        function toggleScanner() {
+            if (state.isScanning) {
+                stopScanner();
+            } else {
+                startScanner();
+            }
+        }
+
+        function startScanner() {
+            const wrapper = document.getElementById('scanner-wrapper');
+            const btnText = document.getElementById('camera-btn-text');
+
+            if (typeof Html5Qrcode === 'undefined') {
+                showToast('Library kamera belum termuat. Periksa koneksi internet Anda.', 'error');
+                return;
+            }
+
+            wrapper.classList.remove('hidden');
+            btnText.textContent = 'Matikan Kamera';
+
+            state.html5QrCode = new Html5Qrcode("qr-reader");
+            let lastScannedCode = '';
+            let lastScannedTime = 0;
+
+            state.html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 220, height: 220 } },
+                (decodedText) => {
+                    const cleanCode = decodedText.trim().toUpperCase();
+                    const now = Date.now();
+                    if (cleanCode === lastScannedCode && (now - lastScannedTime) < 2500) {
+                        return;
+                    }
+                    lastScannedCode = cleanCode;
+                    lastScannedTime = now;
+                    processAttendanceScan(cleanCode, 'Scan Kamera QR');
+                },
+                () => {}
+            ).then(() => {
+                state.isScanning = true;
+            }).catch((err) => {
+                console.warn('Camera access error:', err);
+                showToast('Kamera diblokir oleh jendela preview/browser. Buka lewat HTTPS langsung untuk memakai kamera.', 'error');
+                stopScanner();
+            });
+        }
+
+        function stopScanner() {
+            const wrapper = document.getElementById('scanner-wrapper');
+            const btnText = document.getElementById('camera-btn-text');
+
+            if (state.html5QrCode && state.isScanning) {
+                state.html5QrCode.stop().then(() => {
+                    state.html5QrCode.clear();
+                }).catch(() => {});
+            }
+            state.isScanning = false;
+            if (wrapper) wrapper.classList.add('hidden');
+            if (btnText) btnText.textContent = 'Aktifkan Kamera';
+        }
+
+        function parseBatchIds(rawInput) {
+            return rawInput
+                .split(/[\s,;|\n\r]+/)
+                .map(id => id.trim().toUpperCase())
+                .filter(Boolean);
+        }
+
+        function updateBatchIdCounter() {
+            const input = document.getElementById('manual-student-id');
+            const counter = document.getElementById('batch-id-counter');
+            if (!input || !counter) return;
+
+            const ids = parseBatchIds(input.value);
+            counter.textContent = `${ids.length} / 50 ID`;
+            if (ids.length > 50) {
+                counter.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700';
+            } else if (ids.length > 0) {
+                counter.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800';
+            } else {
+                counter.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600';
+            }
+        }
+
+        async function handleManualScan() {
+            const input = document.getElementById('manual-student-id');
+            const rawIds = parseBatchIds(input.value);
+
+            if (rawIds.length === 0) {
+                showToast('Masukkan minimal 1 ID Siswa terlebih dahulu.', 'error');
+                return;
+            }
+            if (rawIds.length > 50) {
+                showToast(`Maksimal 50 ID sekaligus! Anda memasukkan ${rawIds.length} ID.`, 'error');
+                return;
+            }
+
+            const uniqueIds = [...new Set(rawIds)];
+            for (const id of uniqueIds) {
+                await processAttendanceScan(id, uniqueIds.length > 1 ? 'Input Massal ID' : 'Input Manual ID');
+            }
+
+            input.value = '';
+            updateBatchIdCounter();
+        }
+
+        // ==========================================
+        // 6. PENCARIAN NAMA & SAMPEL KARTU QR
+        // ==========================================
+        function renderSearchQrCards() {
+            const container = document.getElementById('search-qr-results');
+            const searchInput = document.getElementById('search-student-scan');
+            if (!container || !searchInput) return;
+
+            const keyword = searchInput.value.trim().toLowerCase();
+            const matches = state.students.filter(s =>
+                s.nama.toLowerCase().includes(keyword) ||
+                s.id.toLowerCase().includes(keyword) ||
+                s.kelas.toLowerCase().includes(keyword)
+            ).slice(0, 8);
+
+            if (matches.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center text-xs text-slate-400 py-4">Siswa tidak ditemukan.</p>`;
+                return;
+            }
+
+            container.innerHTML = matches.map(s => `
+                <button onclick="processAttendanceScan('${s.id}', 'Klik Kartu Nama')" class="bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 rounded-xl p-2.5 text-center transition flex flex-col items-center gap-1.5 group">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(s.id)}" alt="QR ${s.id}" class="w-16 h-16 rounded-lg bg-white p-1 border border-slate-100 group-hover:scale-105 transition">
+                    <div class="w-full">
+                        <p class="font-semibold text-xs text-slate-800 truncate">${s.nama}</p>
+                        <p class="text-[10px] text-slate-500">${s.id} • ${s.kelas}</p>
+                    </div>
+                </button>
+            `).join('');
+        }
+
+        function isStudentInUzurPeriod(studentId, dateStr) {
+            const inUzurLog = state.uzurLogs.some(
+                u => u.id_siswa === studentId && dateStr >= u.tanggal_mulai && dateStr <= u.tanggal_selesai
+            );
+            if (inUzurLog) return true;
+
+            return state.attendanceLogs.some(
+                l => l.id_siswa === studentId && l.tanggal === dateStr && l.status === "Uzur Syar'i"
+            );
+        }
+
+        async function processAttendanceScan(studentId, metode) {
+            const student = state.students.find(s => s.id === studentId);
+            if (!student) {
+                showToast(`ID Siswa "${studentId}" tidak ditemukan di database!`, 'error');
+                return;
+            }
+
+            const today = getTodayStr();
+            const waktuSholat = document.getElementById('prayer-time-select').value;
+
+            if (isStudentInUzurPeriod(student.id, today)) {
+                showToast(`${student.nama} tercatat sedang Uzur Syar'i hari ini.`, 'uzur');
+                return;
+            }
+
+            const alreadyLogged = state.attendanceLogs.some(
+                l => l.id_siswa === student.id && l.tanggal === today && l.waktu_sholat === waktuSholat
+            );
+            if (alreadyLogged) {
+                showToast(`${student.nama} sudah tercatat absen ${waktuSholat} hari ini.`, 'info');
+                return;
+            }
+
+            const record = {
+                id_absen: 'ABS-' + Date.now().toString().slice(-6),
+                id_siswa: student.id,
+                nama_siswa: student.nama,
+                kelas: student.kelas,
+                tanggal: today,
+                waktu_sholat: waktuSholat,
+                status: 'Hadir',
+                metode: metode
+            };
+
+            state.attendanceLogs.unshift(record);
+            saveLocalState();
+            renderAll();
+            showToast(`Berhasil! ${student.nama} (${student.kelas}) hadir Sholat ${waktuSholat}.`, 'success');
+
+            await postToGoogleSheet({ action: 'absen_sholat', ...record });
         }
 
         // ==========================================
@@ -1296,8 +1493,39 @@ function doPost(e) {
 
         function renderActiveUzurList() {
             const container = document.getElementById('active-uzur-list');
+            if (!container) return;
             const today = getTodayStr();
-            const activeList = state.uzurLogs.filter(u => today >= u.tanggal_mulai && today <= u.tanggal_selesai);
+
+            // Gabungkan sumber dari Log_Menstruasi maupun Absensi_Sholat yang berstatus Uzur Syar'i hari ini
+            const uzurMap = new Map();
+
+            state.uzurLogs
+                .filter(u => today >= u.tanggal_mulai && today <= u.tanggal_selesai)
+                .forEach(u => {
+                    const matched = state.students.find(s => s.id === u.id_siswa);
+                    uzurMap.set(u.id_siswa, {
+                        id_siswa: u.id_siswa,
+                        nama_siswa: u.nama_siswa || (matched ? matched.nama : u.id_siswa),
+                        kelas: (u.kelas && u.kelas !== '-') ? u.kelas : (matched ? matched.kelas : '-'),
+                        tanggal_mulai: u.tanggal_mulai
+                    });
+                });
+
+            state.attendanceLogs
+                .filter(l => l.tanggal === today && l.status === "Uzur Syar'i")
+                .forEach(l => {
+                    if (!uzurMap.has(l.id_siswa)) {
+                        const matched = state.students.find(s => s.id === l.id_siswa);
+                        uzurMap.set(l.id_siswa, {
+                            id_siswa: l.id_siswa,
+                            nama_siswa: l.nama_siswa || (matched ? matched.nama : l.id_siswa),
+                            kelas: (l.kelas && l.kelas !== '-') ? l.kelas : (matched ? matched.kelas : '-'),
+                            tanggal_mulai: today
+                        });
+                    }
+                });
+
+            const activeList = Array.from(uzurMap.values());
 
             if (activeList.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 italic">Tidak ada siswi yang sedang dalam masa uzur aktif hari ini.</p>`;
