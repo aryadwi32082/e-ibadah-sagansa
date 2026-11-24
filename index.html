@@ -47,6 +47,10 @@
             border-radius: 1rem;
             object-fit: cover;
         }
+        #uzur-qr-reader video {
+            border-radius: 1rem;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body class="text-slate-800 pb-24 min-h-screen flex flex-col">
@@ -213,15 +217,33 @@
                         <i data-lucide="heart-handshake" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <h2 class="font-bold text-rose-950 text-base">Input Uzur Syar'i Siswi (Multi-Hari)</h2>
+                        <h2 class="font-bold text-rose-950 text-base">Input Uzur Syar'i Siswi (Harian)</h2>
                         <p class="text-xs text-rose-800/80 mt-1 leading-relaxed">
-                            Catat siswi yang sedang berhalangan (menstruasi). Sistem akan otomatis menandai status <strong>Sholat Dhuha & Dhuhur</strong> sebagai <em>"Uzur Syar'i"</em> selama rentang hari yang dipilih.
+                            Catat siswi yang sedang berhalangan (menstruasi) untuk <strong>hari ini / tanggal terpilih</strong>. Sistem otomatis menandai status <strong>Sholat Dhuha & Dhuhur</strong> sebagai <em>"Uzur Syar'i"</em> pada tanggal tersebut.
                         </p>
                     </div>
                 </div>
             </div>
 
-            <!-- Form Smart Uzur -->
+            <!-- Area Kamera QR Scanner Khusus Uzur -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 text-center space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold text-slate-800 flex items-center gap-2 text-sm sm:text-base">
+                        <i data-lucide="qr-code" class="w-5 h-5 text-rose-600"></i> Pindai Kartu QR Uzur Siswi
+                    </h3>
+                    <button id="toggle-uzur-camera-btn" onclick="toggleUzurScanner()" class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition flex items-center gap-1.5 shadow-sm">
+                        <i data-lucide="camera" class="w-4 h-4"></i> <span id="uzur-camera-btn-text">Aktifkan Kamera</span>
+                    </button>
+                </div>
+
+                <!-- Container Kamera Uzur -->
+                <div id="uzur-scanner-wrapper" class="hidden overflow-hidden rounded-2xl bg-slate-900 relative min-h-[260px] flex flex-col items-center justify-center p-3">
+                    <div id="uzur-qr-reader" class="w-full"></div>
+                    <p class="text-[11px] text-slate-300 mt-2">Arahkan QR Code kartu siswi untuk langsung mencatat Uzur Syar'i hari ini.</p>
+                </div>
+            </div>
+
+            <!-- Form Uzur Harian -->
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
                 <div class="space-y-2">
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Cari & Pilih Nama Siswi</label>
@@ -235,43 +257,25 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Tanggal Mulai</label>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Tanggal Uzur (Berlaku Harian)</label>
                     <input type="date" id="uzur-start-date" class="w-full text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-rose-400">
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Pilih Perkiraan Durasi (Otomatis Multi-Hari)</label>
-                    <div class="grid grid-cols-3 gap-2.5">
-                        <button type="button" onclick="selectDuration(3)" id="dur-btn-3" class="dur-btn border-2 border-slate-200 hover:border-rose-400 rounded-xl py-3 px-2 text-center transition">
-                            <span class="block text-lg font-bold text-slate-800">3 Hari</span>
-                            <span class="text-[11px] text-slate-500">Singkat</span>
-                        </button>
-                        <button type="button" onclick="selectDuration(5)" id="dur-btn-5" class="dur-btn border-2 border-rose-500 bg-rose-50/70 rounded-xl py-3 px-2 text-center transition">
-                            <span class="block text-lg font-bold text-rose-700">5 Hari</span>
-                            <span class="text-[11px] text-rose-600">Umum</span>
-                        </button>
-                        <button type="button" onclick="selectDuration(7)" id="dur-btn-7" class="dur-btn border-2 border-slate-200 hover:border-rose-400 rounded-xl py-3 px-2 text-center transition">
-                            <span class="block text-lg font-bold text-slate-800">7 Hari</span>
-                            <span class="text-[11px] text-slate-500">Maksimal</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Preview Rentang Tanggal -->
-                <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70 flex items-center justify-between text-xs">
-                    <span class="text-slate-500">Berlaku otomatis s/d tanggal:</span>
+                <!-- Preview Status Harian -->
+                <div class="bg-rose-50/70 rounded-xl p-3.5 border border-rose-200/70 flex items-center justify-between text-xs">
+                    <span class="text-rose-800">Berlaku otomatis (Dhuha & Dhuhur) pada:</span>
                     <span id="uzur-end-preview" class="font-bold text-rose-700 text-sm">-</span>
                 </div>
 
                 <button onclick="submitUzur()" class="w-full bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-semibold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
-                    <i data-lucide="calendar-check" class="w-5 h-5"></i> Simpan Status Uzur Multi-Hari
+                    <i data-lucide="calendar-check" class="w-5 h-5"></i> Simpan Status Uzur Hari Ini
                 </button>
             </div>
 
             <!-- Daftar Siswi Sedang Masa Uzur Aktif -->
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
                 <h3 class="font-semibold text-sm text-slate-800 mb-3 flex items-center gap-2">
-                    <i data-lucide="clock" class="w-4 h-4 text-rose-500"></i> Masa Uzur Aktif Hari Ini
+                    <i data-lucide="clock" class="w-4 h-4 text-rose-500"></i> Daftar Uzur Aktif Hari Ini
                 </h3>
                 <div id="active-uzur-list" class="space-y-2.5 text-sm">
                     <!-- Diisi via JS -->
@@ -639,9 +643,11 @@ function doPost(e) {
             isAuthenticated: sessionStorage.getItem('ei_officer_auth') === 'true',
             userRole: sessionStorage.getItem('ei_user_role') || 'petugas',
             officerName: sessionStorage.getItem('ei_officer_name') || 'Petugas Piket',
-            selectedDuration: 5,
+            selectedDuration: 1,
             html5QrCode: null,
-            isScanning: false
+            isScanning: false,
+            uzurHtml5QrCode: null,
+            isUzurScanning: false
         };
 
         // Helper mendapatkan tanggal format YYYY-MM-DD (Lokal)
@@ -729,6 +735,7 @@ function doPost(e) {
 
         function logoutOfficer() {
             if (state.isScanning) stopScanner();
+            if (state.isUzurScanning) stopUzurScanner();
             state.isAuthenticated = false;
             state.userRole = 'petugas';
             sessionStorage.removeItem('ei_officer_auth');
@@ -898,6 +905,9 @@ function doPost(e) {
             if (tabName !== 'scan' && state.isScanning) {
                 stopScanner();
             }
+            if (tabName !== 'uzur' && state.isUzurScanning) {
+                stopUzurScanner();
+            }
 
             ['scan', 'uzur', 'rekap', 'setup'].forEach(t => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
@@ -933,50 +943,19 @@ function doPost(e) {
         }
 
         // ==========================================
-        // 5. PENCARIAN NAMA SISWA + SAMPEL QR
+        // 7. LOGIKA SMART UZUR (HARIAN & QR SCANNER)
         // ==========================================
-        function renderSearchQrCards() {
-            const keyword = document.getElementById('search-student-scan').value.trim().toLowerCase();
-            const container = document.getElementById('search-qr-results');
-
-            const matched = state.students.filter(s => 
-                s.nama.toLowerCase().includes(keyword) || 
-                s.id.toLowerCase().includes(keyword) ||
-                s.kelas.toLowerCase().includes(keyword)
-            );
-
-            if (matched.length === 0) {
-                container.innerHTML = `<p class="col-span-full text-center text-xs text-slate-400 py-4">Siswa dengan kata kunci "${keyword}" tidak ditemukan.</p>`;
-                return;
-            }
-
-            container.innerHTML = matched.map(s => {
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(s.id)}`;
-                return `
-                    <div onclick="processScan('${s.id}', 'Klik Kartu QR')" class="cursor-pointer group border border-slate-200 hover:border-teal-500 rounded-xl p-2.5 text-center bg-slate-50/70 hover:bg-teal-50/50 transition flex flex-col items-center shadow-2xs">
-                        <img src="${qrUrl}" alt="QR ${s.id}" class="w-20 h-20 rounded-lg bg-white p-1 border border-slate-100 mb-2 group-hover:scale-105 transition" onerror="this.src='https://placehold.co/120x120/e2e8f0/475569?text=${s.id}'">
-                        <span class="text-[11px] font-bold text-teal-800">${s.id}</span>
-                        <span class="text-xs font-semibold text-slate-700 truncate w-full">${s.nama}</span>
-                        <span class="text-[10px] text-slate-400">${s.kelas}</span>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // ==========================================
-        // 6. LOGIKA SCANNER QR & ABSENSI SHOLAT
-        // ==========================================
-        function toggleScanner() {
-            if (state.isScanning) {
-                stopScanner();
+        function toggleUzurScanner() {
+            if (state.isUzurScanning) {
+                stopUzurScanner();
             } else {
-                startScanner();
+                startUzurScanner();
             }
         }
 
-        function startScanner() {
-            const wrapper = document.getElementById('scanner-wrapper');
-            const btnText = document.getElementById('camera-btn-text');
+        function startUzurScanner() {
+            const wrapper = document.getElementById('uzur-scanner-wrapper');
+            const btnText = document.getElementById('uzur-camera-btn-text');
 
             if (typeof Html5Qrcode === 'undefined') {
                 showToast('Library kamera belum termuat. Periksa koneksi internet Anda.', 'error');
@@ -986,292 +965,129 @@ function doPost(e) {
             wrapper.classList.remove('hidden');
             btnText.textContent = 'Matikan Kamera';
 
-            state.html5QrCode = new Html5Qrcode("qr-reader");
+            state.uzurHtml5QrCode = new Html5Qrcode("uzur-qr-reader");
             let lastScannedCode = '';
             let lastScannedTime = 0;
 
-            state.html5QrCode.start(
+            state.uzurHtml5QrCode.start(
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 220, height: 220 } },
                 (decodedText) => {
                     const cleanCode = decodedText.trim().toUpperCase();
                     const now = Date.now();
-                    // Cegah pemindaian ganda pada kartu yang sama dalam 2.5 detik
                     if (cleanCode === lastScannedCode && (now - lastScannedTime) < 2500) {
                         return;
                     }
                     lastScannedCode = cleanCode;
                     lastScannedTime = now;
-                    processScan(cleanCode, 'Scan Kamera QR');
+                    processUzurScan(cleanCode);
                 },
                 () => {}
             ).then(() => {
-                state.isScanning = true;
+                state.isUzurScanning = true;
             }).catch((err) => {
-                console.warn('Camera access error:', err);
+                console.warn('Uzur Camera access error:', err);
                 showToast('Kamera diblokir oleh jendela preview/browser. Buka lewat HTTPS langsung untuk memakai kamera.', 'error');
-                stopScanner();
+                stopUzurScanner();
             });
         }
 
-        function stopScanner() {
-            const wrapper = document.getElementById('scanner-wrapper');
-            const btnText = document.getElementById('camera-btn-text');
+        function stopUzurScanner() {
+            const wrapper = document.getElementById('uzur-scanner-wrapper');
+            const btnText = document.getElementById('uzur-camera-btn-text');
 
-            if (state.html5QrCode && state.isScanning) {
-                state.html5QrCode.stop().then(() => {
-                    state.html5QrCode.clear();
+            if (state.uzurHtml5QrCode && state.isUzurScanning) {
+                state.uzurHtml5QrCode.stop().then(() => {
+                    state.uzurHtml5QrCode.clear();
                 }).catch(() => {});
             }
-            state.isScanning = false;
-            wrapper.classList.add('hidden');
-            btnText.textContent = 'Aktifkan Kamera';
-        }
-
-        function parseBatchStudentIds(rawText) {
-            if (!rawText) return [];
-            const tokens = rawText
-                .toUpperCase()
-                .split(/[\s,;]+/)
-                .map(item => item.trim())
-                .filter(Boolean);
-            return [...new Set(tokens)];
-        }
-
-        function updateBatchIdCounter() {
-            const input = document.getElementById('manual-student-id');
-            const counterEl = document.getElementById('batch-id-counter');
-            const uniqueIds = parseBatchStudentIds(input.value);
-            const count = uniqueIds.length;
-
-            counterEl.textContent = `${count} / 50 ID`;
-            if (count > 50) {
-                counterEl.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700';
-            } else if (count > 0) {
-                counterEl.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800';
-            } else {
-                counterEl.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600';
-            }
-        }
-
-        async function handleManualScan() {
-            const input = document.getElementById('manual-student-id');
-            const uniqueIds = parseBatchStudentIds(input.value);
-
-            if (uniqueIds.length === 0) {
-                showToast('Masukkan minimal 1 ID Siswa terlebih dahulu.', 'error');
-                return;
-            }
-
-            if (uniqueIds.length > 50) {
-                showToast(`Maksimal 50 ID siswa sekaligus (saat ini terdeteksi ${uniqueIds.length} ID).`, 'error');
-                return;
-            }
-
-            if (uniqueIds.length === 1) {
-                await processScan(uniqueIds[0], 'Input Manual');
-                input.value = '';
-                updateBatchIdCounter();
-                return;
-            }
-
-            // Proses Massal (2 s/d 50 ID)
-            const today = getTodayStr();
-            const waktuSholat = document.getElementById('prayer-time-select').value;
-            let suksesCount = 0;
-            let uzurCount = 0;
-            let duplikatCount = 0;
-            let tidakDitemukan = [];
-
-            for (const studentId of uniqueIds) {
-                const student = state.students.find(s => s.id === studentId);
-                if (!student) {
-                    tidakDitemukan.push(studentId);
-                    continue;
-                }
-
-                const alreadyLogged = state.attendanceLogs.some(
-                    log => log.id_siswa === studentId && log.tanggal === today && log.waktu_sholat === waktuSholat
-                );
-                if (alreadyLogged) {
-                    duplikatCount++;
-                    continue;
-                }
-
-                const sedangUzur = isStudentInUzurPeriod(studentId, today);
-                const finalStatus = sedangUzur ? "Uzur Syar'i" : "Hadir";
-
-                const newRecord = {
-                    id_absen: 'ABS-' + Date.now().toString().slice(-6) + '-' + student.id,
-                    id_siswa: student.id,
-                    nama_siswa: student.nama,
-                    kelas: student.kelas,
-                    tanggal: today,
-                    waktu_sholat: waktuSholat,
-                    status: finalStatus,
-                    metode: sedangUzur ? 'Auto Smart-Uzur' : 'Input Massal'
-                };
-
-                state.attendanceLogs.unshift(newRecord);
-                if (sedangUzur) uzurCount++;
-                else suksesCount++;
-
-                await postToGoogleSheet({ action: 'absen_sholat', ...newRecord });
-            }
-
-            saveLocalState();
-            renderAll();
-            input.value = '';
-            updateBatchIdCounter();
-
-            let ringkasan = `Selesai (${waktuSholat}): ${suksesCount} Hadir`;
-            if (uzurCount > 0) ringkasan += `, ${uzurCount} Uzur`;
-            if (duplikatCount > 0) ringkasan += `, ${duplikatCount} sudah absen`;
-            if (tidakDitemukan.length > 0) ringkasan += `, ${tidakDitemukan.length} ID tidak valid`;
-
-            showToast(ringkasan, (suksesCount + uzurCount) > 0 ? 'success' : 'error');
-        }
-
-        function isStudentInUzurPeriod(studentId, targetDate) {
-            return state.uzurLogs.some(u => 
-                u.id_siswa === studentId && 
-                targetDate >= u.tanggal_mulai && 
-                targetDate <= u.tanggal_selesai
-            );
-        }
-
-        async function processScan(studentId, metode) {
-            const student = state.students.find(s => s.id === studentId);
-            if (!student) {
-                showToast(`ID Siswa "${studentId}" tidak ditemukan di database!`, 'error');
-                return;
-            }
-
-            const today = getTodayStr();
-            const waktuSholat = document.getElementById('prayer-time-select').value;
-
-            const alreadyLogged = state.attendanceLogs.some(
-                log => log.id_siswa === studentId && log.tanggal === today && log.waktu_sholat === waktuSholat
-            );
-
-            if (alreadyLogged) {
-                showToast(`${student.nama} sudah tercatat untuk Sholat ${waktuSholat} hari ini.`, 'info');
-                return;
-            }
-
-            const sedangUzur = isStudentInUzurPeriod(studentId, today);
-            const finalStatus = sedangUzur ? "Uzur Syar'i" : "Hadir";
-
-            const newRecord = {
-                id_absen: 'ABS-' + Date.now().toString().slice(-6),
-                id_siswa: student.id,
-                nama_siswa: student.nama,
-                kelas: student.kelas,
-                tanggal: today,
-                waktu_sholat: waktuSholat,
-                status: finalStatus,
-                metode: sedangUzur ? 'Auto Smart-Uzur' : metode
-            };
-
-            state.attendanceLogs.unshift(newRecord);
-            saveLocalState();
-            renderAll();
-
-            if (sedangUzur) {
-                showToast(`${student.nama} sedang masa uzur. Tercatat otomatis: Uzur Syar'i.`, 'uzur');
-            } else {
-                showToast(`Berhasil! ${student.nama} (Sholat ${waktuSholat}) tercatat Hadir.`, 'success');
-            }
-
-            await postToGoogleSheet({ action: 'absen_sholat', ...newRecord });
-        }
-
-        // ==========================================
-        // 7. LOGIKA SMART UZUR (MULTI-HARI)
-        // ==========================================
-        function selectDuration(days) {
-            state.selectedDuration = days;
-            [3, 5, 7].forEach(d => {
-                const btn = document.getElementById(`dur-btn-${d}`);
-                if (d === days) {
-                    btn.className = 'dur-btn border-2 border-rose-500 bg-rose-50/70 rounded-xl py-3 px-2 text-center transition';
-                    btn.querySelector('span:first-child').className = 'block text-lg font-bold text-rose-700';
-                } else {
-                    btn.className = 'dur-btn border-2 border-slate-200 hover:border-rose-400 rounded-xl py-3 px-2 text-center transition';
-                    btn.querySelector('span:first-child').className = 'block text-lg font-bold text-slate-800';
-                }
-            });
-            updateUzurEndPreview();
-        }
-
-        function calculateEndDate(startDateStr, durationDays) {
-            const d = new Date(startDateStr + 'T00:00:00');
-            d.setDate(d.getDate() + (parseInt(durationDays) - 1));
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+            state.isUzurScanning = false;
+            if (wrapper) wrapper.classList.add('hidden');
+            if (btnText) btnText.textContent = 'Aktifkan Kamera';
         }
 
         function updateUzurEndPreview() {
             const startDate = document.getElementById('uzur-start-date').value;
             if (!startDate) return;
-            const endDate = calculateEndDate(startDate, state.selectedDuration);
-            document.getElementById('uzur-end-preview').textContent = formatDisplayDate(endDate);
+            document.getElementById('uzur-end-preview').textContent = formatDisplayDate(startDate) + ' (1 Hari)';
+        }
+
+        async function processUzurScan(studentId) {
+            const student = state.students.find(s => s.id === studentId);
+            if (!student) {
+                showToast(`ID Siswa "${studentId}" tidak ditemukan di database!`, 'error');
+                return;
+            }
+            if (student.gender !== 'Perempuan') {
+                showToast(`${student.nama} bukan siswi perempuan. Uzur Syar'i khusus siswi.`, 'error');
+                return;
+            }
+
+            const targetDate = document.getElementById('uzur-start-date').value || getTodayStr();
+            await recordDailyUzur(student, targetDate, 'Scan Kamera QR Uzur');
         }
 
         async function submitUzur() {
             const studentId = document.getElementById('uzur-student-select').value;
-            const startDate = document.getElementById('uzur-start-date').value;
+            const targetDate = document.getElementById('uzur-start-date').value;
             const student = state.students.find(s => s.id === studentId);
 
-            if (!student || !startDate) {
-                showToast('Lengkapi data siswi dan tanggal mulai.', 'error');
+            if (!student || !targetDate) {
+                showToast('Lengkapi data siswi dan tanggal uzur.', 'error');
                 return;
             }
 
-            const endDate = calculateEndDate(startDate, state.selectedDuration);
+            await recordDailyUzur(student, targetDate, 'Input Form Uzur');
+        }
+
+        async function recordDailyUzur(student, targetDate, metodeUzur) {
+            const alreadyUzur = state.uzurLogs.some(
+                u => u.id_siswa === student.id && targetDate >= u.tanggal_mulai && targetDate <= u.tanggal_selesai
+            );
+
+            if (alreadyUzur) {
+                showToast(`${student.nama} sudah tercatat Uzur Syar'i pada ${formatDisplayDate(targetDate)}.`, 'info');
+                return;
+            }
+
             const uzurRecord = {
                 id_log: 'UZR-' + Date.now().toString().slice(-6),
                 id_siswa: student.id,
                 nama_siswa: student.nama,
                 kelas: student.kelas,
-                tanggal_mulai: startDate,
-                durasi: state.selectedDuration,
-                tanggal_selesai: endDate
+                tanggal_mulai: targetDate,
+                durasi: 1,
+                tanggal_selesai: targetDate
             };
 
             state.uzurLogs.unshift(uzurRecord);
 
-            // Otomatis buatkan entri Uzur Syar'i untuk Dhuha & Dhuhur hari ini jika masuk rentang tanggal
-            const today = getTodayStr();
-            if (today >= startDate && today <= endDate) {
-                for (const waktu of ['Dhuha', 'Dhuhur']) {
-                    const existingIdx = state.attendanceLogs.findIndex(
-                        l => l.id_siswa === student.id && l.tanggal === today && l.waktu_sholat === waktu
-                    );
-                    const autoAbsen = {
-                        id_absen: 'ABS-' + Date.now().toString().slice(-6) + waktu[2],
-                        id_siswa: student.id,
-                        nama_siswa: student.nama,
-                        kelas: student.kelas,
-                        tanggal: today,
-                        waktu_sholat: waktu,
-                        status: "Uzur Syar'i",
-                        metode: 'Smart Scan Uzur'
-                    };
-                    if (existingIdx > -1) {
-                        state.attendanceLogs[existingIdx] = autoAbsen;
-                    } else {
-                        state.attendanceLogs.unshift(autoAbsen);
-                        await postToGoogleSheet({ action: 'absen_sholat', ...autoAbsen });
-                    }
+            // Otomatis buatkan entri Uzur Syar'i untuk Dhuha & Dhuhur pada tanggal tersebut
+            for (const waktu of ['Dhuha', 'Dhuhur']) {
+                const existingIdx = state.attendanceLogs.findIndex(
+                    l => l.id_siswa === student.id && l.tanggal === targetDate && l.waktu_sholat === waktu
+                );
+                const autoAbsen = {
+                    id_absen: 'ABS-' + Date.now().toString().slice(-6) + waktu[2],
+                    id_siswa: student.id,
+                    nama_siswa: student.nama,
+                    kelas: student.kelas,
+                    tanggal: targetDate,
+                    waktu_sholat: waktu,
+                    status: "Uzur Syar'i",
+                    metode: metodeUzur
+                };
+                if (existingIdx > -1) {
+                    state.attendanceLogs[existingIdx] = autoAbsen;
+                } else {
+                    state.attendanceLogs.unshift(autoAbsen);
+                    await postToGoogleSheet({ action: 'absen_sholat', ...autoAbsen });
                 }
             }
 
             saveLocalState();
             renderAll();
-            showToast(`Uzur tercatat untuk ${student.nama} (${state.selectedDuration} hari).`, 'uzur');
+            showToast(`Uzur Syar'i tercatat untuk ${student.nama} (${formatDisplayDate(targetDate)}).`, 'uzur');
 
             await postToGoogleSheet({ action: 'catat_uzur', ...uzurRecord });
         }
@@ -1493,10 +1309,10 @@ function doPost(e) {
                     <div>
                         <p class="font-semibold text-slate-800 text-xs">${u.nama_siswa} <span class="text-slate-400 font-normal">(${u.kelas})</span></p>
                         <p class="text-[11px] text-rose-700 mt-0.5">
-                            ${formatDisplayDate(u.tanggal_mulai)} s/d ${formatDisplayDate(u.tanggal_selesai)} (${u.durasi} Hari)
+                            Tanggal: ${formatDisplayDate(u.tanggal_mulai)} (Harian)
                         </p>
                     </div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider bg-rose-200/70 text-rose-800 px-2 py-1 rounded-lg">Aktif</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider bg-rose-200/70 text-rose-800 px-2 py-1 rounded-lg">Uzur Hari Ini</span>
                 </div>
             `).join('');
         }
